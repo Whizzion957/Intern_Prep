@@ -52,6 +52,15 @@ const getQuestions = async (req, res) => {
                 },
             },
             { $unwind: '$company' },
+            // Lookup claimed users for search
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'claimedBy.user',
+                    foreignField: '_id',
+                    as: 'claimedUsers',
+                },
+            },
         ];
 
         // Add search across joined fields if search term provided
@@ -62,6 +71,8 @@ const getQuestions = async (req, res) => {
                         { question: { $regex: search, $options: 'i' } },
                         { suggestions: { $regex: search, $options: 'i' } },
                         { 'company.name': { $regex: search, $options: 'i' } },
+                        { 'claimedUsers.fullName': { $regex: search, $options: 'i' } },
+                        { 'claimedUsers.enrollmentNumber': { $regex: search, $options: 'i' } },
                     ],
                 },
             });

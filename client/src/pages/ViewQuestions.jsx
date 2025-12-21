@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context';
 import { QuestionCard } from '../components';
-import { questionAPI } from '../services/api';
+import { questionAPI, companyAPI } from '../services/api';
 import './ViewQuestions.css';
 
 const ViewQuestions = () => {
@@ -14,6 +14,7 @@ const ViewQuestions = () => {
 
     const [filters, setFilters] = useState({
         search: searchParams.get('search') || '',
+        company: searchParams.get('company') || '',
         type: searchParams.get('type') || '',
         year: searchParams.get('year') || '',
         sortBy: searchParams.get('sortBy') || 'createdAt',
@@ -21,6 +22,13 @@ const ViewQuestions = () => {
     });
 
     const [showFilters, setShowFilters] = useState(false);
+
+    // Company filter state
+    const [companySearch, setCompanySearch] = useState('');
+    const [companyResults, setCompanyResults] = useState([]);
+    const [selectedCompany, setSelectedCompany] = useState(null);
+    const [companySearchLoading, setCompanySearchLoading] = useState(false);
+    const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
 
     useEffect(() => {
         loadQuestions();
@@ -34,6 +42,29 @@ const ViewQuestions = () => {
             setSearchParams(searchParams);
         }
     }, []);
+
+    // Company search with debounce
+    useEffect(() => {
+        if (companySearch.length < 1) {
+            setCompanyResults([]);
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            setCompanySearchLoading(true);
+            try {
+                const { data } = await companyAPI.getAll(companySearch);
+                setCompanyResults(data || []);
+            } catch (error) {
+                console.error('Company search error:', error);
+                setCompanyResults([]);
+            } finally {
+                setCompanySearchLoading(false);
+            }
+        }, 200);
+
+        return () => clearTimeout(timer);
+    }, [companySearch]);
 
     const loadQuestions = async () => {
         setLoading(true);
@@ -70,14 +101,31 @@ const ViewQuestions = () => {
         setPagination((prev) => ({ ...prev, page: 1 }));
     };
 
+    const handleCompanySelect = (company) => {
+        setSelectedCompany(company);
+        setFilters((prev) => ({ ...prev, company: company._id }));
+        setPagination((prev) => ({ ...prev, page: 1 }));
+        setCompanySearch('');
+        setCompanyResults([]);
+        setShowCompanyDropdown(false);
+    };
+
+    const clearCompanyFilter = () => {
+        setSelectedCompany(null);
+        setFilters((prev) => ({ ...prev, company: '' }));
+        setPagination((prev) => ({ ...prev, page: 1 }));
+    };
+
     const clearFilters = () => {
         setFilters({
             search: '',
+            company: '',
             type: '',
             year: '',
             sortBy: 'createdAt',
             sortOrder: 'desc',
         });
+        setSelectedCompany(null);
         setPagination((prev) => ({ ...prev, page: 1 }));
     };
 
@@ -93,10 +141,15 @@ const ViewQuestions = () => {
         }
     };
 
+    const getInitials = (name) => {
+        if (!name) return '?';
+        return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+    };
+
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
-    const hasActiveFilters = filters.type || filters.result || filters.year;
+    const hasActiveFilters = filters.type || filters.year || filters.company;
 
     return (
         <div className="view-questions-page">
@@ -113,7 +166,7 @@ const ViewQuestions = () => {
                     </svg>
                     <input
                         type="text"
-                        placeholder="Search by company, question, student name, branch, enrollment..."
+                        placeholder="Search by company, question, or claimed user name/enrollment..."
                         value={filters.search}
                         onChange={handleSearch}
                     />
@@ -135,13 +188,76 @@ const ViewQuestions = () => {
                         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                     </svg>
                     Filters
-                    {hasActiveFilters && <span className="filter-badge">{[filters.type, filters.year].filter(Boolean).length}</span>}
+                    {hasActiveFilters && <span className="filter-badge">{[filters.type, filters.year, filters.company].filter(Boolean).length}</span>}
                 </button>
             </div>
+
+            {/* Selected Company Display */}
+            {selectedCompany && (
+                <div className="selected-company-display">
+                    <div className="selected-company-logo">
+                        {selectedCompany.logo ? (
+                            <img src={selectedCompany.logo} alt={selectedCompany.name} />
+                        ) : (
+                            <span>{getInitials(selectedCompany.name)}</span>
+                        )}
+                    </div>
+                    <span className="selected-company-name">{selectedCompany.name}</span>
+                    <button className="clear-company-btn" onClick={clearCompanyFilter}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                </div>
+            )}
 
             {showFilters && (
                 <div className="filters-panel">
                     <div className="filters-row">
+                        {/* Company Search Filter */}
+                        <div className="filter-group company-filter-group">
+                            <label>Company</label>
+                            <div className="company-search-wrapper">
+                                <input
+                                    type="text"
+                                    className="company-search-input"
+                                    placeholder="Search company..."
+                                    value={companySearch}
+                                    onChange={(e) => {
+                                        setCompanySearch(e.target.value);
+                                        setShowCompanyDropdown(true);
+                                    }}
+                                    onFocus={() => setShowCompanyDropdown(true)}
+                                />
+                                {showCompanyDropdown && companyResults.length > 0 && (
+                                    <div className="company-dropdown">
+                                        {companyResults.map((company) => (
+                                            <div
+                                                key={company._id}
+                                                className="company-dropdown-item"
+                                                onClick={() => handleCompanySelect(company)}
+                                            >
+                                                <div className="company-dropdown-logo">
+                                                    {company.logo ? (
+                                                        <img src={company.logo} alt={company.name} />
+                                                    ) : (
+                                                        <span>{getInitials(company.name)}</span>
+                                                    )}
+                                                </div>
+                                                <span>{company.name}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {companySearchLoading && (
+                                    <div className="company-dropdown">
+                                        <div className="company-dropdown-loading">Searching...</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="filter-group">
                             <label>Type</label>
                             <select
