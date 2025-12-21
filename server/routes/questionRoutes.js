@@ -9,6 +9,7 @@ const {
     claimQuestion,
     unclaimQuestion,
     getMyQuestions,
+    getMyClaimsCount,
     adminAddClaim,
     adminRemoveClaim,
 } = require('../controllers/questionController');
@@ -16,6 +17,7 @@ const { protect, admin } = require('../middleware/auth');
 
 router.get('/', getQuestions);
 router.get('/my', protect, getMyQuestions);
+router.get('/my-claims-count', protect, getMyClaimsCount);
 router.get('/:id', getQuestion);
 router.post('/', protect, createQuestion);
 router.put('/:id', protect, updateQuestion);

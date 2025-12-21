@@ -412,6 +412,21 @@ const adminRemoveClaim = async (req, res) => {
     }
 };
 
+// @desc    Get count of questions claimed by current user
+// @route   GET /api/questions/my-claims-count
+// @access  Private
+const getMyClaimsCount = async (req, res) => {
+    try {
+        const count = await Question.countDocuments({
+            'claimedBy.user': req.user._id
+        });
+        res.json({ count });
+    } catch (error) {
+        console.error('Get my claims count error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     getQuestions,
     getQuestion,
@@ -421,7 +436,9 @@ module.exports = {
     claimQuestion,
     unclaimQuestion,
     getMyQuestions,
+    getMyClaimsCount,
     adminAddClaim,
     adminRemoveClaim,
 };
+
 
