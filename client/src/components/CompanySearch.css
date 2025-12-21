@@ -1,0 +1,237 @@
+.company-search {
+    position: relative;
+}
+
+.company-search-input-wrapper {
+    position: relative;
+}
+
+.selected-company {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius);
+}
+
+.selected-company-avatar {
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 0.75rem;
+    overflow: hidden;
+}
+
+.selected-company-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.selected-company-name {
+    flex: 1;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.clear-selection {
+    padding: 0.25rem;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+}
+
+.clear-selection:hover {
+    color: var(--error);
+}
+
+.company-search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 0.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 50;
+    max-height: 20rem;
+    overflow-y: auto;
+}
+
+.search-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    color: var(--text-muted);
+}
+
+.company-list {
+    list-style: none;
+    padding: 0.5rem;
+}
+
+.company-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.company-item:hover {
+    background: var(--border-light);
+}
+
+.company-item-avatar {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 0.75rem;
+    overflow: hidden;
+}
+
+.company-item-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.company-item-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.no-results {
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.no-results p {
+    margin-bottom: 1rem;
+    color: var(--text-muted);
+}
+
+.create-company-form {
+    padding: 1.25rem;
+}
+
+.create-company-form h4 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.create-company-name {
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 1rem;
+}
+
+.logo-upload {
+    margin-bottom: 1rem;
+}
+
+.logo-upload-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all var(--transition-fast);
+}
+
+.logo-upload-label:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.logo-preview {
+    width: 4rem;
+    height: 4rem;
+    object-fit: cover;
+    border-radius: var(--radius);
+}
+
+.create-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+/* Add logo button for existing companies */
+.add-logo-btn {
+    font-size: 0.75rem;
+    gap: 0.25rem;
+    color: var(--primary);
+}
+
+.add-logo-btn:hover {
+    background: var(--primary-light);
+}
+
+/* Logo upload dropdown */
+.logo-upload-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 0.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 50;
+}
+
+.logo-upload-content {
+    padding: 1.25rem;
+    text-align: center;
+}
+
+.logo-upload-content h4 {
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+}
+
+.logo-upload-content .btn {
+    margin: 0 0.25rem;
+}
+
+/* No logo badge in dropdown list */
+.no-logo-badge {
+    margin-left: auto;
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+    background: var(--warning-light);
+    color: var(--warning);
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+}
