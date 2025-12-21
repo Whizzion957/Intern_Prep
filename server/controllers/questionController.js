@@ -1,6 +1,7 @@
 const Question = require('../models/Question');
 const Company = require('../models/Company');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 
 // @desc    Get all questions with search, filter, and sort
 // @route   GET /api/questions
@@ -23,9 +24,9 @@ const getQuestions = async (req, res) => {
         // NOTE: Search is applied AFTER company join so we can search company names
         // See the $match after $lookup below
 
-        // Filter by company ID (not search)
+        // Filter by company ID (convert to ObjectId for proper matching)
         if (company) {
-            query.company = company;
+            query.company = new mongoose.Types.ObjectId(company);
         }
 
         // Filter by type
