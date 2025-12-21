@@ -23,16 +23,17 @@ const Dashboard = () => {
 
     const loadDashboardData = async () => {
         try {
-            // Get recent questions (for display) and stats
-            const [questionsRes, statsRes] = await Promise.all([
+            // Get recent questions for display, all questions for claim count, and stats
+            const [recentRes, allQuestionsRes, statsRes] = await Promise.all([
                 questionAPI.getAll({ limit: 5, sortBy: 'createdAt', sortOrder: 'desc' }),
+                questionAPI.getAll({ limit: 1000 }), // Fetch all to count claims
                 isAdmin ? adminAPI.getStats() : Promise.resolve({ data: null }),
             ]);
 
-            setRecentQuestions(questionsRes.data.questions || []);
+            setRecentQuestions(recentRes.data.questions || []);
 
-            // Count questions claimed by current user
-            const allQuestions = questionsRes.data.questions || [];
+            // Count questions claimed by current user from larger set
+            const allQuestions = allQuestionsRes.data.questions || [];
             const claimed = allQuestions.filter(q =>
                 q.claimedBy?.some(claim => claim.user?.enrollmentNumber === user?.enrollmentNumber)
             );
