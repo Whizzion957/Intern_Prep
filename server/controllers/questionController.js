@@ -93,6 +93,7 @@ const getQuestions = async (req, res) => {
                 year: 1,
                 question: 1,
                 suggestions: 1,
+                claimedBy: 1,
                 createdAt: 1,
                 'company._id': 1,
                 'company.name': 1,
