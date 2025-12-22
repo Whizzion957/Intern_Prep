@@ -288,6 +288,7 @@
     border: 1px solid var(--border);
     border-left: 3px solid var(--success);
     border-radius: var(--radius);
+    overflow: hidden;
 }
 
 .perks-label {
@@ -303,6 +304,8 @@
     color: var(--text-secondary);
     font-size: 0.875rem;
     line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .perks-content p {
