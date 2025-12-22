@@ -73,7 +73,7 @@ const ViewQuestions = () => {
             setCompanySearchLoading(true);
             try {
                 const { data } = await companyAPI.getAll(companySearch);
-                setCompanyResults(data || []);
+                setCompanyResults(data.companies || data || []);
             } catch (error) {
                 console.error('Company search error:', error);
                 setCompanyResults([]);
