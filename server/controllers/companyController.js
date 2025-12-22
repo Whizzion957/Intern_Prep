@@ -6,7 +6,10 @@ const { cloudinary, uploadToCloudinary } = require('../config/cloudinary');
 // @access  Public
 const getCompanies = async (req, res) => {
     try {
-        const { search, limit = 50 } = req.query;
+        const { search, page = 1, limit = 100 } = req.query;
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
 
         let query = {};
 
@@ -14,12 +17,25 @@ const getCompanies = async (req, res) => {
             query = { name: { $regex: search, $options: 'i' } };
         }
 
-        const companies = await Company.find(query)
-            .select('name logo')
-            .sort({ name: 1 })
-            .limit(parseInt(limit));
+        const [companies, total] = await Promise.all([
+            Company.find(query)
+                .select('name logo')
+                .sort({ name: 1 })
+                .skip(skip)
+                .limit(limitNum),
+            Company.countDocuments(query)
+        ]);
 
-        res.json(companies);
+        res.json({
+            companies,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                pages: Math.ceil(total / limitNum),
+                hasMore: skip + companies.length < total
+            }
+        });
     } catch (error) {
         console.error('Get companies error:', error);
         res.status(500).json({ message: 'Server error' });

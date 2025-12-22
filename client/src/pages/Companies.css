@@ -77,6 +77,13 @@
     margin-bottom: 1.5rem;
     font-size: 0.875rem;
     color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.companies-page .page-info {
+    color: var(--text-muted);
 }
 
 .companies-grid {
@@ -164,6 +171,53 @@
     margin-bottom: 0.5rem;
 }
 
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+}
+
+.page-numbers {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.page-btn {
+    min-width: 2.25rem;
+    height: 2.25rem;
+    padding: 0 0.5rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-primary);
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all var(--transition-fast);
+}
+
+.page-btn:hover {
+    border-color: var(--primary);
+    background: var(--background);
+}
+
+.page-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.ellipsis {
+    padding: 0 0.25rem;
+    color: var(--text-muted);
+}
+
 @media (max-width: 768px) {
     .companies-page {
         padding: 1.5rem 1rem;
@@ -186,5 +240,16 @@
         width: 3rem;
         height: 3rem;
         font-size: 1rem;
+    }
+
+    .pagination {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .page-numbers {
+        order: 3;
+        width: 100%;
+        justify-content: center;
     }
 }

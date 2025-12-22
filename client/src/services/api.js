@@ -37,7 +37,7 @@ export const authAPI = {
 
 // Company API
 export const companyAPI = {
-    getAll: (search = '') => api.get(`/companies?search=${search}`),
+    getAll: (search = '', page = 1) => api.get(`/companies?search=${search}&page=${page}`),
     getById: (id) => api.get(`/companies/${id}`),
     create: (formData) => api.post('/companies', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },

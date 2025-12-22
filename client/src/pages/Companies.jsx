@@ -8,9 +8,10 @@ const Companies = () => {
     const [companies, setCompanies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState(searchParams.get('search') || '');
+    const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
 
     useEffect(() => {
-        loadCompanies();
+        loadCompanies(1); // Reset to page 1 when search changes
     }, [search]);
 
     useEffect(() => {
@@ -19,15 +20,27 @@ const Companies = () => {
         setSearchParams(params, { replace: true });
     }, [search]);
 
-    const loadCompanies = async () => {
+    const loadCompanies = async (page = 1) => {
         setLoading(true);
         try {
-            const { data } = await companyAPI.getAll(search);
-            setCompanies(data);
+            const { data } = await companyAPI.getAll(search, page);
+            setCompanies(data.companies);
+            setPagination(data.pagination);
         } catch (error) {
             console.error('Failed to load companies:', error);
+            // Fallback for old API format
+            if (Array.isArray(error?.response?.data)) {
+                setCompanies(error.response.data);
+            }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= pagination.pages) {
+            loadCompanies(newPage);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
 
@@ -67,7 +80,10 @@ const Companies = () => {
             </div>
 
             <div className="results-info">
-                <span>{companies.length} compan{companies.length !== 1 ? 'ies' : 'y'} found</span>
+                <span>{pagination.total} compan{pagination.total !== 1 ? 'ies' : 'y'} found</span>
+                {pagination.pages > 1 && (
+                    <span className="page-info">Page {pagination.page} of {pagination.pages}</span>
+                )}
             </div>
 
             {loading ? (
@@ -89,24 +105,63 @@ const Companies = () => {
                     <p>Try adjusting your search</p>
                 </div>
             ) : (
-                <div className="companies-grid">
-                    {companies.map((company) => (
-                        <Link
-                            key={company._id}
-                            to={`/companies/${company._id}`}
-                            className="company-card"
-                        >
-                            <div className="company-logo">
-                                {company.logo ? (
-                                    <img src={company.logo} alt={company.name} />
-                                ) : (
-                                    <span>{getInitials(company.name)}</span>
-                                )}
+                <>
+                    <div className="companies-grid">
+                        {companies.map((company) => (
+                            <Link
+                                key={company._id}
+                                to={`/companies/${company._id}`}
+                                className="company-card"
+                            >
+                                <div className="company-logo">
+                                    {company.logo ? (
+                                        <img src={company.logo} alt={company.name} />
+                                    ) : (
+                                        <span>{getInitials(company.name)}</span>
+                                    )}
+                                </div>
+                                <h3 className="company-name">{company.name}</h3>
+                            </Link>
+                        ))}
+                    </div>
+
+                    {/* Pagination */}
+                    {pagination.pages > 1 && (
+                        <div className="pagination">
+                            <button
+                                className="btn btn-ghost"
+                                disabled={pagination.page <= 1}
+                                onClick={() => handlePageChange(pagination.page - 1)}
+                            >
+                                ← Previous
+                            </button>
+
+                            <div className="page-numbers">
+                                {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+                                    .filter(p => p === 1 || p === pagination.pages || Math.abs(p - pagination.page) <= 2)
+                                    .map((pageNum, idx, arr) => (
+                                        <span key={pageNum}>
+                                            {idx > 0 && arr[idx - 1] !== pageNum - 1 && <span className="ellipsis">...</span>}
+                                            <button
+                                                className={`page-btn ${pageNum === pagination.page ? 'active' : ''}`}
+                                                onClick={() => handlePageChange(pageNum)}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        </span>
+                                    ))}
                             </div>
-                            <h3 className="company-name">{company.name}</h3>
-                        </Link>
-                    ))}
-                </div>
+
+                            <button
+                                className="btn btn-ghost"
+                                disabled={pagination.page >= pagination.pages}
+                                onClick={() => handlePageChange(pagination.page + 1)}
+                            >
+                                Next →
+                            </button>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

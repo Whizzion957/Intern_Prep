@@ -319,7 +319,7 @@ const CompanyDetail = () => {
                                 {role.duration && (
                                     <div className="role-duration">
                                         <span className="duration-label">Duration</span>
-                                        <span className="duration-value">{role.duration} months</span>
+                                        <span className="duration-value">{role.duration}</span>
                                     </div>
                                 )}
 
@@ -586,11 +586,12 @@ const CompanyEditModal = ({ company, onClose, onSave }) => {
                                         </select>
                                     </div>
                                     <div className="form-group">
-                                        <label>Duration (months)</label>
+                                        <label>Duration</label>
                                         <input
-                                            type="number"
+                                            type="text"
+                                            placeholder="e.g., 2 months, 10-12 weeks"
                                             value={role.duration || ''}
-                                            onChange={(e) => updateRole(index, 'duration', Number(e.target.value))}
+                                            onChange={(e) => updateRole(index, 'duration', e.target.value)}
                                         />
                                     </div>
                                     <div className="form-group">

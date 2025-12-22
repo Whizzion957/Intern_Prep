@@ -23,7 +23,10 @@ const UG_BRANCHES = [
 ];
 
 const PG_BRANCHES = [
-    'M.Tech. (Computer Science)',
+    'M.Tech. (Computer Science and Engineering)',
+    'M.Tech. Applied Mathematics and Scientific Computing (M.Tech. )',
+    'M.Tech In Artificial Intelligence (M.Tech. )',
+    'M. Tech. in Data Science (M.Tech. )',
     'M.Tech. (Electrical Engineering)',
     'M.Tech. (Mechanical Engineering)',
     'M.Tech. (Civil Engineering)',
@@ -68,7 +71,7 @@ const roleSchema = new mongoose.Schema({
         enum: ['Day 0', 'Day 1', 'Day 2', 'Day 3', 'Later'],
         default: 'Day 1'
     },
-    duration: { type: Number, default: 2 }, // Duration in months
+    duration: { type: String }, // Duration (e.g., "2 months", "10-12 weeks")
     location: { type: String }, // Office/work location
     totalStipend: { type: Number }, // Monthly stipend in INR (calculated from monthly breakdowns)
     totalOneTime: { type: Number }, // Total one-time payments (bonus, grants etc)
