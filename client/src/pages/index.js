@@ -7,3 +7,5 @@ export { default as QuestionDetail } from './QuestionDetail';
 export { default as MySubmissions } from './MySubmissions';
 export { default as EditQuestion } from './EditQuestion';
 export { default as AdminPanel } from './AdminPanel';
+export { default as Companies } from './Companies';
+export { default as CompanyDetail } from './CompanyDetail';

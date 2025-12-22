@@ -1,4 +1,4 @@
-const Company = require('../models/Company');
+const { Company, UG_BRANCHES, PG_BRANCHES, PHD_BRANCHES } = require('../models/Company');
 const { cloudinary, uploadToCloudinary } = require('../config/cloudinary');
 
 // @desc    Get all companies or search
@@ -122,4 +122,51 @@ const updateCompanyLogo = async (req, res) => {
     }
 };
 
-module.exports = { getCompanies, getCompany, createCompany, updateCompanyLogo };
+// @desc    Update company details (roles, stipend, branches)
+// @route   PUT /api/companies/:id/details
+// @access  Private (Admin only)
+const updateCompanyDetails = async (req, res) => {
+    try {
+        const company = await Company.findById(req.params.id);
+
+        if (!company) {
+            return res.status(404).json({ message: 'Company not found' });
+        }
+
+        const { description, roles } = req.body;
+
+        if (description !== undefined) {
+            company.description = description;
+        }
+
+        if (roles !== undefined) {
+            company.roles = roles;
+        }
+
+        await company.save();
+        res.json(company);
+    } catch (error) {
+        console.error('Update company details error:', error);
+        res.status(500).json({ message: error.message || 'Server error' });
+    }
+};
+
+// @desc    Get branch lists for dropdowns
+// @route   GET /api/companies/branches
+// @access  Public
+const getBranchLists = async (req, res) => {
+    res.json({
+        ug: UG_BRANCHES,
+        pg: PG_BRANCHES,
+        phd: PHD_BRANCHES
+    });
+};
+
+module.exports = {
+    getCompanies,
+    getCompany,
+    createCompany,
+    updateCompanyLogo,
+    updateCompanyDetails,
+    getBranchLists
+};

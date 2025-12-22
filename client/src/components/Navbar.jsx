@@ -47,7 +47,10 @@ const Navbar = () => {
                     {user && (
                         <>
                             <Link to="/questions" className="nav-link">
-                                View Questions
+                                Questions
+                            </Link>
+                            <Link to="/companies" className="nav-link">
+                                Companies
                             </Link>
                             <Link to="/add" className="nav-link">
                                 Add Question

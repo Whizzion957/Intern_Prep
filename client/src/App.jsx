@@ -12,6 +12,8 @@ import {
   MySubmissions,
   EditQuestion,
   AdminPanel,
+  Companies,
+  CompanyDetail,
 } from './pages';
 import './styles/index.css';
 
@@ -110,6 +112,8 @@ function AppContent() {
           <Route path="/questions/:id" element={<QuestionDetail />} />
           <Route path="/questions/:id/edit" element={<EditQuestion />} />
           <Route path="/my-claims" element={<MySubmissions />} />
+          <Route path="/companies" element={<Companies />} />
+          <Route path="/companies/:id" element={<CompanyDetail />} />
           <Route path="/admin" element={<AdminPanel />} />
         </Route>
 

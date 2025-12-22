@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const Question = require('../models/Question');
-const Company = require('../models/Company');
+const { Company } = require('../models/Company');
 
 // @desc    Get all users
 // @route   GET /api/admin/users

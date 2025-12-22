@@ -45,6 +45,16 @@ export const companyAPI = {
     updateLogo: (id, formData) => api.put(`/companies/${id}/logo`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
     }),
+    updateDetails: (id, data) => api.put(`/companies/${id}/details`, data),
+    getBranches: () => api.get('/companies/branches'),
+};
+
+// Company Tips API
+export const companyTipAPI = {
+    getTips: (companyId) => api.get(`/companies/${companyId}/tips`),
+    createTip: (companyId, data) => api.post(`/companies/${companyId}/tips`, data),
+    updateTip: (tipId, data) => api.put(`/companies/tips/${tipId}`, data),
+    deleteTip: (tipId) => api.delete(`/companies/tips/${tipId}`),
 };
 
 // Question API
