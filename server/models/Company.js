@@ -32,6 +32,9 @@ const PG_BRANCHES = [
     'M.Tech. (Civil Engineering)',
     'M.Tech. (Chemical Engineering)',
     'M.Tech. (Electronics & Communication)',
+
+    'M.Tech. (Chemical Engineering)',
+    'M.Tech. (Production and Industrial Engineering)',
     'MBA',
     'M.Sc. (Mathematics)',
     'M.Sc. (Physics)',
