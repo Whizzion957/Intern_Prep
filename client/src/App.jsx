@@ -109,7 +109,7 @@ function AppContent() {
           <Route path="/questions" element={<ViewQuestions />} />
           <Route path="/questions/:id" element={<QuestionDetail />} />
           <Route path="/questions/:id/edit" element={<EditQuestion />} />
-          <Route path="/my-submissions" element={<MySubmissions />} />
+          <Route path="/my-claims" element={<MySubmissions />} />
           <Route path="/admin" element={<AdminPanel />} />
         </Route>
 

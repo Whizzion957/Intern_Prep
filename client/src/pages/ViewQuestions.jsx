@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context';
 import { QuestionCard } from '../components';
@@ -10,7 +10,19 @@ const ViewQuestions = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [questions, setQuestions] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
+    const [pagination, setPagination] = useState({
+        page: parseInt(searchParams.get('page')) || 1,
+        pages: 1,
+        total: 0
+    });
+
+    // Company filter refs and state
+    const companyDropdownRef = useRef(null);
+    const [companySearch, setCompanySearch] = useState('');
+    const [companyResults, setCompanyResults] = useState([]);
+    const [selectedCompany, setSelectedCompany] = useState(null);
+    const [companySearchLoading, setCompanySearchLoading] = useState(false);
+    const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
 
     const [filters, setFilters] = useState({
         search: searchParams.get('search') || '',
@@ -21,27 +33,34 @@ const ViewQuestions = () => {
         sortOrder: searchParams.get('sortOrder') || 'desc',
     });
 
-    const [showFilters, setShowFilters] = useState(false);
+    // Sync filters to URL for browser history support
+    useEffect(() => {
+        const params = new URLSearchParams();
+        if (filters.search) params.set('search', filters.search);
+        if (filters.company) params.set('company', filters.company);
+        if (filters.type) params.set('type', filters.type);
+        if (filters.year) params.set('year', filters.year);
+        if (filters.sortBy !== 'createdAt') params.set('sortBy', filters.sortBy);
+        if (filters.sortOrder !== 'desc') params.set('sortOrder', filters.sortOrder);
+        if (pagination.page > 1) params.set('page', pagination.page.toString());
 
-    // Company filter state
-    const [companySearch, setCompanySearch] = useState('');
-    const [companyResults, setCompanyResults] = useState([]);
-    const [selectedCompany, setSelectedCompany] = useState(null);
-    const [companySearchLoading, setCompanySearchLoading] = useState(false);
-    const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
+        setSearchParams(params, { replace: true });
+    }, [filters, pagination.page]);
+
+    // Close company dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (companyDropdownRef.current && !companyDropdownRef.current.contains(event.target)) {
+                setShowCompanyDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     useEffect(() => {
         loadQuestions();
     }, [filters, pagination.page]);
-
-    useEffect(() => {
-        // Show success toast if just submitted
-        if (searchParams.get('submitted')) {
-            // Could add a toast notification here
-            searchParams.delete('submitted');
-            setSearchParams(searchParams);
-        }
-    }, []);
 
     // Company search with debounce
     useEffect(() => {
@@ -149,7 +168,7 @@ const ViewQuestions = () => {
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
-    const hasActiveFilters = filters.type || filters.year || filters.company;
+    const hasActiveFilters = filters.search || filters.type || filters.year || filters.company;
 
     return (
         <div className="view-questions-page">
@@ -158,6 +177,7 @@ const ViewQuestions = () => {
                 <p>Browse and search all interview experiences shared by IITR students</p>
             </header>
 
+            {/* Search Bar */}
             <div className="search-section">
                 <div className="search-bar">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -166,7 +186,7 @@ const ViewQuestions = () => {
                     </svg>
                     <input
                         type="text"
-                        placeholder="Search by company, question, or claimed user name/enrollment..."
+                        placeholder="Search questions, companies, or claimed users..."
                         value={filters.search}
                         onChange={handleSearch}
                     />
@@ -179,17 +199,6 @@ const ViewQuestions = () => {
                         </button>
                     )}
                 </div>
-
-                <button
-                    className={`filter-toggle btn btn-outline ${showFilters ? 'active' : ''}`}
-                    onClick={() => setShowFilters(!showFilters)}
-                >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-                    </svg>
-                    Filters
-                    {hasActiveFilters && <span className="filter-badge">{[filters.type, filters.year, filters.company].filter(Boolean).length}</span>}
-                </button>
             </div>
 
             {/* Selected Company Display */}
@@ -212,109 +221,108 @@ const ViewQuestions = () => {
                 </div>
             )}
 
-            {showFilters && (
-                <div className="filters-panel">
-                    <div className="filters-row">
-                        {/* Company Search Filter */}
-                        <div className="filter-group company-filter-group">
-                            <label>Company</label>
-                            <div className="company-search-wrapper">
-                                <input
-                                    type="text"
-                                    className="company-search-input"
-                                    placeholder="Search company..."
-                                    value={companySearch}
-                                    onChange={(e) => {
-                                        setCompanySearch(e.target.value);
-                                        setShowCompanyDropdown(true);
-                                    }}
-                                    onFocus={() => setShowCompanyDropdown(true)}
-                                />
-                                {showCompanyDropdown && companyResults.length > 0 && (
-                                    <div className="company-dropdown">
-                                        {companyResults.map((company) => (
-                                            <div
-                                                key={company._id}
-                                                className="company-dropdown-item"
-                                                onClick={() => handleCompanySelect(company)}
-                                            >
-                                                <div className="company-dropdown-logo">
-                                                    {company.logo ? (
-                                                        <img src={company.logo} alt={company.name} />
-                                                    ) : (
-                                                        <span>{getInitials(company.name)}</span>
-                                                    )}
-                                                </div>
-                                                <span>{company.name}</span>
+            {/* Filters - Always Visible */}
+            <div className="filters-panel">
+                <div className="filters-row">
+                    {/* Company Search Filter */}
+                    <div className="filter-group company-filter-group" ref={companyDropdownRef}>
+                        <label>Company</label>
+                        <div className="company-search-wrapper">
+                            <input
+                                type="text"
+                                className="company-search-input"
+                                placeholder={selectedCompany ? selectedCompany.name : "Search company..."}
+                                value={companySearch}
+                                onChange={(e) => {
+                                    setCompanySearch(e.target.value);
+                                    setShowCompanyDropdown(true);
+                                }}
+                                onFocus={() => setShowCompanyDropdown(true)}
+                            />
+                            {showCompanyDropdown && companyResults.length > 0 && (
+                                <div className="company-dropdown">
+                                    {companyResults.map((company) => (
+                                        <div
+                                            key={company._id}
+                                            className="company-dropdown-item"
+                                            onClick={() => handleCompanySelect(company)}
+                                        >
+                                            <div className="company-dropdown-logo">
+                                                {company.logo ? (
+                                                    <img src={company.logo} alt={company.name} />
+                                                ) : (
+                                                    <span>{getInitials(company.name)}</span>
+                                                )}
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                                {companySearchLoading && (
-                                    <div className="company-dropdown">
-                                        <div className="company-dropdown-loading">Searching...</div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="filter-group">
-                            <label>Type</label>
-                            <select
-                                value={filters.type}
-                                onChange={(e) => handleFilterChange('type', e.target.value)}
-                            >
-                                <option value="">All Types</option>
-                                <option value="interview">Interview</option>
-                                <option value="oa">Online Assessment</option>
-                                <option value="others">Others</option>
-                            </select>
-                        </div>
-
-                        <div className="filter-group">
-                            <label>Year</label>
-                            <select
-                                value={filters.year}
-                                onChange={(e) => handleFilterChange('year', e.target.value)}
-                            >
-                                <option value="">All Years</option>
-                                {years.map((year) => (
-                                    <option key={year} value={year}>{year}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="filter-group">
-                            <label>Sort By</label>
-                            <select
-                                value={filters.sortBy}
-                                onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-                            >
-                                <option value="createdAt">Date Added</option>
-                                <option value="year">Interview Year</option>
-                                <option value="company">Company</option>
-                            </select>
-                        </div>
-
-                        <div className="filter-group">
-                            <label>Order</label>
-                            <select
-                                value={filters.sortOrder}
-                                onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
-                            >
-                                <option value="desc">Descending</option>
-                                <option value="asc">Ascending</option>
-                            </select>
+                                            <span>{company.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {showCompanyDropdown && companySearchLoading && (
+                                <div className="company-dropdown">
+                                    <div className="company-dropdown-loading">Searching...</div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {hasActiveFilters && (
-                        <button className="clear-filters btn btn-ghost btn-sm" onClick={clearFilters}>
-                            Clear All Filters
-                        </button>
-                    )}
+                    <div className="filter-group">
+                        <label>Type</label>
+                        <select
+                            value={filters.type}
+                            onChange={(e) => handleFilterChange('type', e.target.value)}
+                        >
+                            <option value="">All Types</option>
+                            <option value="interview">Interview</option>
+                            <option value="oa">Online Assessment</option>
+                            <option value="others">Others</option>
+                        </select>
+                    </div>
+
+                    <div className="filter-group">
+                        <label>Year</label>
+                        <select
+                            value={filters.year}
+                            onChange={(e) => handleFilterChange('year', e.target.value)}
+                        >
+                            <option value="">All Years</option>
+                            {years.map((year) => (
+                                <option key={year} value={year}>{year}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="filter-group">
+                        <label>Sort By</label>
+                        <select
+                            value={filters.sortBy}
+                            onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                        >
+                            <option value="createdAt">Date Added</option>
+                            <option value="year">Interview Year</option>
+                            <option value="company">Company</option>
+                        </select>
+                    </div>
+
+                    <div className="filter-group">
+                        <label>Order</label>
+                        <select
+                            value={filters.sortOrder}
+                            onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
+                        >
+                            <option value="desc">Descending</option>
+                            <option value="asc">Ascending</option>
+                        </select>
+                    </div>
                 </div>
-            )}
+
+                {hasActiveFilters && (
+                    <button className="clear-filters btn btn-ghost btn-sm" onClick={clearFilters}>
+                        Clear All Filters
+                    </button>
+                )}
+            </div>
 
             <div className="results-info">
                 <span>{pagination.total} question{pagination.total !== 1 ? 's' : ''} found</span>

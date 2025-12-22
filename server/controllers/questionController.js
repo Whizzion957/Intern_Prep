@@ -65,25 +65,92 @@ const getQuestions = async (req, res) => {
         ];
 
         // Add search across joined fields if search term provided
+        // Priority: 1=company, 2=claimed user name, 3=question/suggestion, 4=enrollment
         if (search) {
+            const searchRegex = { $regex: search, $options: 'i' };
+
+            // First filter to documents that match any field
             pipeline.push({
                 $match: {
                     $or: [
-                        { question: { $regex: search, $options: 'i' } },
-                        { suggestions: { $regex: search, $options: 'i' } },
-                        { 'company.name': { $regex: search, $options: 'i' } },
-                        { 'claimedUsers.fullName': { $regex: search, $options: 'i' } },
-                        { 'claimedUsers.enrollmentNumber': { $regex: search, $options: 'i' } },
+                        { 'company.name': searchRegex },
+                        { 'claimedUsers.fullName': searchRegex },
+                        { question: searchRegex },
+                        { suggestions: searchRegex },
+                        { 'claimedUsers.enrollmentNumber': searchRegex },
                     ],
                 },
             });
-        }
 
-        // Sorting
-        const sortOptions = {};
-        const sortField = sortBy === 'company' ? 'company.name' : sortBy;
-        sortOptions[sortField] = sortOrder === 'asc' ? 1 : -1;
-        pipeline.push({ $sort: sortOptions });
+            // Add priority score for sorting
+            pipeline.push({
+                $addFields: {
+                    searchPriority: {
+                        $switch: {
+                            branches: [
+                                // Priority 1: Company name match
+                                {
+                                    case: { $regexMatch: { input: '$company.name', regex: search, options: 'i' } },
+                                    then: 1
+                                },
+                                // Priority 2: Claimed user name match
+                                {
+                                    case: {
+                                        $anyElementTrue: {
+                                            $map: {
+                                                input: { $ifNull: ['$claimedUsers', []] },
+                                                as: 'user',
+                                                in: { $regexMatch: { input: '$$user.fullName', regex: search, options: 'i' } }
+                                            }
+                                        }
+                                    },
+                                    then: 2
+                                },
+                                // Priority 3: Question or suggestion text match
+                                {
+                                    case: {
+                                        $or: [
+                                            { $regexMatch: { input: '$question', regex: search, options: 'i' } },
+                                            { $regexMatch: { input: { $ifNull: ['$suggestions', ''] }, regex: search, options: 'i' } }
+                                        ]
+                                    },
+                                    then: 3
+                                },
+                                // Priority 4: Enrollment number match
+                                {
+                                    case: {
+                                        $anyElementTrue: {
+                                            $map: {
+                                                input: { $ifNull: ['$claimedUsers', []] },
+                                                as: 'user',
+                                                in: { $regexMatch: { input: '$$user.enrollmentNumber', regex: search, options: 'i' } }
+                                            }
+                                        }
+                                    },
+                                    then: 4
+                                }
+                            ],
+                            default: 5
+                        }
+                    }
+                }
+            });
+
+            // Sort by priority first, then by user-selected sort
+            const sortField = sortBy === 'company' ? 'company.name' : sortBy;
+            pipeline.push({
+                $sort: {
+                    searchPriority: 1,
+                    [sortField]: sortOrder === 'asc' ? 1 : -1
+                }
+            });
+        } else {
+            // No search - just apply user-selected sort
+            const sortOptions = {};
+            const sortField = sortBy === 'company' ? 'company.name' : sortBy;
+            sortOptions[sortField] = sortOrder === 'asc' ? 1 : -1;
+            pipeline.push({ $sort: sortOptions });
+        }
 
         // Count total documents
         const countPipeline = [...pipeline, { $count: 'total' }];
@@ -439,6 +506,25 @@ const getMyClaimsCount = async (req, res) => {
     }
 };
 
+// @desc    Get questions claimed by current user
+// @route   GET /api/questions/my-claims
+// @access  Private
+const getMyClaims = async (req, res) => {
+    try {
+        const questions = await Question.find({
+            'claimedBy.user': req.user._id
+        })
+            .populate('company', 'name logo')
+            .populate('claimedBy.user', 'fullName enrollmentNumber branch displayPicture')
+            .sort({ createdAt: -1 });
+
+        res.json(questions);
+    } catch (error) {
+        console.error('Get my claims error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     getQuestions,
     getQuestion,
@@ -448,9 +534,8 @@ module.exports = {
     claimQuestion,
     unclaimQuestion,
     getMyQuestions,
+    getMyClaims,
     getMyClaimsCount,
     adminAddClaim,
     adminRemoveClaim,
 };
-
-
