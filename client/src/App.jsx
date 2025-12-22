@@ -14,6 +14,7 @@ import {
   AdminPanel,
   Companies,
   CompanyDetail,
+  BetaRestricted,
 } from './pages';
 import './styles/index.css';
 
@@ -103,6 +104,7 @@ function AppContent() {
           }
         />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/beta-restricted" element={<BetaRestricted />} />
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>

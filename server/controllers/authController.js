@@ -110,6 +110,33 @@ const callback = async (req, res) => {
 
         console.log('Extracted data:', { enrollmentNumber, fullName, branch, email });
 
+        // ============ BETA TESTING RESTRICTIONS (TEMPORARY) ============
+        // 1. Only CSE department can login
+        const allowedDepartments = [
+            'Computer Science and Engineering',
+            'CSE',
+            'Computer Science',
+            'Dept. of Computer Science and Engineering'
+        ];
+        const isCseDept = allowedDepartments.some(dept =>
+            branch.toLowerCase().includes(dept.toLowerCase()) ||
+            dept.toLowerCase().includes(branch.toLowerCase())
+        );
+
+        if (!isCseDept) {
+            console.log('Beta restriction: Non-CSE department blocked:', branch);
+            return res.redirect(`${process.env.CLIENT_URL}/beta-restricted?reason=department&branch=${encodeURIComponent(branch)}`);
+        }
+
+        // 2. Enrollment year > 23 shows "launching shortly" page
+        const enrollmentYear = parseInt(enrollmentNumber.toString().substring(0, 2));
+        if (enrollmentYear > 23) {
+            console.log('Beta restriction: Batch > 23 blocked:', enrollmentYear);
+            return res.redirect(`${process.env.CLIENT_URL}/beta-restricted?reason=batch&year=${enrollmentYear}`);
+        }
+        // ============ END BETA RESTRICTIONS ============
+
+
         // Find or create user
         let user = await User.findOne({ enrollmentNumber: enrollmentNumber });
 
