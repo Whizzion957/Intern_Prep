@@ -48,7 +48,6 @@ const Dashboard = () => {
             <header className="dashboard-header">
                 <div className="welcome-section">
                     <h1>Welcome back, {user?.fullName?.split(' ')[0]}!</h1>
-                    <p>Ready to help your juniors ace their interviews?</p>
                 </div>
             </header>
 

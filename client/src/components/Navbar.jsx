@@ -35,11 +35,11 @@ const Navbar = () => {
             <div className="navbar-container">
                 <Link to="/" className="navbar-brand">
                     <div className="navbar-logo">
-                        <span className="logo-icon">IQ</span>
+                        <span className="logo-icon">IAI</span>
                     </div>
                     <div className="navbar-title">
-                        <span className="title-main">Interview Questions</span>
-                        <span className="title-sub">IIT Roorkee</span>
+                        <span className="title-main">Intern At IITR</span>
+                        <span className="title-sub">Beta Version</span>
                     </div>
                 </Link>
 
