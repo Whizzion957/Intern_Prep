@@ -40,7 +40,7 @@ const CompanySearch = ({ value, onChange, onCreateNew }) => {
         setLoading(true);
         try {
             const { data } = await companyAPI.getAll(search);
-            setCompanies(data);
+            setCompanies(data.companies || data || []);
         } catch (error) {
             console.error('Search error:', error);
         } finally {
