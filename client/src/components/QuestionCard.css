@@ -133,6 +133,49 @@
     background: var(--error-bg);
 }
 
+/* Question number badge */
+.question-number {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-left: 0.5rem;
+}
+
+/* Visited badge (green tick) */
+.visited-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: var(--success);
+    color: white;
+    border-radius: 50%;
+}
+
+/* Visited card styling */
+.question-card.visited {
+    border-left: 3px solid var(--success);
+}
+
+/* Owner info */
+.question-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.meta-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.meta-owner {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
 @media (max-width: 640px) {
     .question-card-header {
         flex-direction: column;

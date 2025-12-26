@@ -444,6 +444,238 @@
     color: var(--text-secondary);
 }
 
+/* Question number in header */
+.company-info h1 .question-number {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-left: 0.5rem;
+}
+
+/* Owner section */
+.owner-section {
+    padding: 2rem;
+    border-top: 1px solid var(--border);
+}
+
+.owner-section h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.owner-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.owner-avatar {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    overflow: hidden;
+}
+
+.owner-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.owner-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.owner-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.owner-enrollment {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--primary);
+}
+
+.owner-branch {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
+
+/* Transfer info */
+.transfer-info {
+    font-size: 0.9375rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+/* User search container */
+.user-search-container {
+    position: relative;
+}
+
+.user-search-container input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+}
+
+.search-spinner {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: translateY(-50%) rotate(360deg);
+    }
+}
+
+.user-search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 0.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.user-search-result {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.user-search-result:hover {
+    background: var(--background);
+}
+
+.user-result-avatar {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 0.75rem;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.user-result-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-result-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.user-result-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+}
+
+.user-result-enrollment {
+    font-size: 0.8125rem;
+    color: var(--primary);
+    font-weight: 500;
+}
+
+/* Selected user tag */
+.selected-user-tag {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--primary-bg);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius);
+}
+
+.selected-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.selected-user-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.selected-user-enrollment {
+    font-size: 0.875rem;
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.clear-user-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all var(--transition-fast);
+}
+
+.clear-user-btn:hover {
+    background: var(--error-bg);
+    color: var(--error);
+}
+
 @media (max-width: 768px) {
     .question-detail-page {
         padding: 1rem;

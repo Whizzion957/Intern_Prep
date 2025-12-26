@@ -8,7 +8,7 @@ const Dashboard = () => {
     const { user, isAdmin } = useAuth();
     const [stats, setStats] = useState(null);
     const [recentQuestions, setRecentQuestions] = useState([]);
-    const [claimedCount, setClaimedCount] = useState(0);
+    const [submissionsCount, setSubmissionsCount] = useState(0);
     const [loading, setLoading] = useState(true);
 
     // Strip HTML tags for display
@@ -23,15 +23,15 @@ const Dashboard = () => {
 
     const loadDashboardData = async () => {
         try {
-            // Get recent questions, claim count (optimized), and stats in parallel
-            const [recentRes, claimsRes, statsRes] = await Promise.all([
+            // Get recent questions, submissions count, and stats in parallel
+            const [recentRes, submissionsRes, statsRes] = await Promise.all([
                 questionAPI.getAll({ limit: 5, sortBy: 'createdAt', sortOrder: 'desc' }),
-                questionAPI.getMyClaimsCount(),
+                questionAPI.getMySubmissionsCount(),
                 isAdmin ? adminAPI.getStats() : Promise.resolve({ data: null }),
             ]);
 
             setRecentQuestions(recentRes.data.questions || []);
-            setClaimedCount(claimsRes.data.count || 0);
+            setSubmissionsCount(submissionsRes.data.count || 0);
 
             if (statsRes.data) {
                 setStats(statsRes.data);
@@ -101,8 +101,8 @@ const Dashboard = () => {
                     ) : (
                         <div className="stats-grid">
                             <div className="stat-card">
-                                <div className="stat-value">{claimedCount}</div>
-                                <div className="stat-label">Questions Claimed</div>
+                                <div className="stat-value">{submissionsCount}</div>
+                                <div className="stat-label">My Submissions</div>
                             </div>
                             {stats && (
                                 <>

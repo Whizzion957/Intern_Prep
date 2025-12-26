@@ -6,33 +6,32 @@ const {
     createQuestion,
     updateQuestion,
     deleteQuestion,
-    claimQuestion,
-    unclaimQuestion,
-    getMyQuestions,
-    getMyClaims,
-    getMyClaimsCount,
-    adminAddClaim,
-    adminRemoveClaim,
+    markVisited,
+    getVisitedQuestions,
+    getMySubmissions,
+    getMySubmissionsCount,
+    transferOwnership,
 } = require('../controllers/questionController');
 const { protect, admin } = require('../middleware/auth');
 
+// Public routes
 router.get('/', getQuestions);
-router.get('/my', protect, getMyQuestions);
-router.get('/my-claims', protect, getMyClaims);
-router.get('/my-claims-count', protect, getMyClaimsCount);
 router.get('/:id', getQuestion);
+
+// Protected routes
 router.post('/', protect, createQuestion);
 router.put('/:id', protect, updateQuestion);
 router.delete('/:id', protect, deleteQuestion);
 
-// Claim routes (user can only claim/unclaim themselves)
-router.post('/:id/claim', protect, claimQuestion);
-router.delete('/:id/claim', protect, unclaimQuestion);
+// Visited questions tracking
+router.get('/user/visited', protect, getVisitedQuestions);
+router.post('/:id/visit', protect, markVisited);
 
-// Admin claim routes (can add/remove any user's claim)
-router.post('/:id/claim/:userId', protect, admin, adminAddClaim);
-router.delete('/:id/claim/:userId', protect, admin, adminRemoveClaim);
+// My submissions
+router.get('/user/my-submissions', protect, getMySubmissions);
+router.get('/user/my-submissions-count', protect, getMySubmissionsCount);
+
+// Admin: Transfer ownership
+router.put('/:id/transfer', protect, admin, transferOwnership);
 
 module.exports = router;
-
-

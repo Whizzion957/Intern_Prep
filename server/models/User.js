@@ -29,6 +29,11 @@ const userSchema = new mongoose.Schema(
             enum: ['user', 'admin', 'superadmin'],
             default: 'user',
         },
+        // Track visited questions for green tick feature
+        visitedQuestions: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Question',
+        }],
     },
     {
         timestamps: true,

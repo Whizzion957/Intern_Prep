@@ -23,6 +23,7 @@ const ViewQuestions = () => {
     const [selectedCompany, setSelectedCompany] = useState(null);
     const [companySearchLoading, setCompanySearchLoading] = useState(false);
     const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
+    const [visitedQuestions, setVisitedQuestions] = useState([]);
 
     const [filters, setFilters] = useState({
         search: searchParams.get('search') || '',
@@ -61,6 +62,21 @@ const ViewQuestions = () => {
     useEffect(() => {
         loadQuestions();
     }, [filters, pagination.page]);
+
+    // Load visited questions on mount
+    useEffect(() => {
+        const loadVisited = async () => {
+            if (user) {
+                try {
+                    const { data } = await questionAPI.getVisited();
+                    setVisitedQuestions(data || []);
+                } catch (error) {
+                    console.error('Failed to load visited questions:', error);
+                }
+            }
+        };
+        loadVisited();
+    }, [user]);
 
     // Company search with debounce
     useEffect(() => {
@@ -358,6 +374,7 @@ const ViewQuestions = () => {
                                 question={question}
                                 showActions={!!user}
                                 onDelete={handleDelete}
+                                isVisited={visitedQuestions.includes(question._id)}
                             />
                         ))}
                     </div>

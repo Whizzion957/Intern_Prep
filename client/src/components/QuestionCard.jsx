@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import './QuestionCard.css';
 
-const QuestionCard = ({ question, onEdit, onDelete, showActions = true }) => {
+const QuestionCard = ({ question, onEdit, onDelete, showActions = true, isVisited = false }) => {
     const getInitials = (name) => {
         if (!name) return '?';
         return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
@@ -35,7 +35,7 @@ const QuestionCard = ({ question, onEdit, onDelete, showActions = true }) => {
     const previewText = getPlainText(question.question);
 
     return (
-        <article className="question-card card">
+        <article className={`question-card card ${isVisited ? 'visited' : ''}`}>
             <div className="question-card-header">
                 <div className="company-info">
                     <div className="company-avatar">
@@ -46,13 +46,25 @@ const QuestionCard = ({ question, onEdit, onDelete, showActions = true }) => {
                         )}
                     </div>
                     <div className="company-details">
-                        <h3 className="company-name">{company.name}</h3>
+                        <h3 className="company-name">
+                            {company.name}
+                            {question.questionNumber && (
+                                <span className="question-number">#{question.questionNumber}</span>
+                            )}
+                        </h3>
                         <span className="question-date">
                             {monthNames[question.month - 1]} {question.year}
                         </span>
                     </div>
                 </div>
                 <div className="question-badges">
+                    {isVisited && (
+                        <span className="visited-badge" title="You've viewed this question">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                            </svg>
+                        </span>
+                    )}
                     {getTypeBadge(question.type, question.otherType)}
                 </div>
             </div>
@@ -70,6 +82,11 @@ const QuestionCard = ({ question, onEdit, onDelete, showActions = true }) => {
                     <span className="meta-text">
                         Added {new Date(question.createdAt).toLocaleDateString()}
                     </span>
+                    {question.owner?.fullName && (
+                        <span className="meta-owner">
+                            by {question.owner.fullName}
+                        </span>
+                    )}
                 </div>
 
                 {showActions && (

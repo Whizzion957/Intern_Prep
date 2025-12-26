@@ -21,10 +21,7 @@ const getQuestions = async (req, res) => {
 
         let query = {};
 
-        // NOTE: Search is applied AFTER company join so we can search company names
-        // See the $match after $lookup below
-
-        // Filter by company ID (convert to ObjectId for proper matching)
+        // Filter by company ID
         if (company) {
             query.company = new mongoose.Types.ObjectId(company);
         }
@@ -34,14 +31,12 @@ const getQuestions = async (req, res) => {
             query.type = type;
         }
 
-        // result field removed - no longer filtering by result
-
         // Filter by year
         if (year) {
             query.year = parseInt(year);
         }
 
-        // Build the aggregation pipeline - questions are anonymous, no user join needed
+        // Build the aggregation pipeline
         const pipeline = [
             { $match: query },
             {
@@ -53,31 +48,34 @@ const getQuestions = async (req, res) => {
                 },
             },
             { $unwind: '$company' },
-            // Lookup claimed users for search
+            // Lookup current owner info
             {
                 $lookup: {
                     from: 'users',
-                    localField: 'claimedBy.user',
+                    localField: 'submittedBy',
                     foreignField: '_id',
-                    as: 'claimedUsers',
+                    as: 'owner',
                 },
+            },
+            {
+                $addFields: {
+                    owner: { $arrayElemAt: ['$owner', 0] }
+                }
             },
         ];
 
         // Add search across joined fields if search term provided
-        // Priority: 1=company, 2=claimed user name, 3=question/suggestion, 4=enrollment
         if (search) {
             const searchRegex = { $regex: search, $options: 'i' };
 
-            // First filter to documents that match any field
             pipeline.push({
                 $match: {
                     $or: [
                         { 'company.name': searchRegex },
-                        { 'claimedUsers.fullName': searchRegex },
+                        { 'owner.fullName': searchRegex },
                         { question: searchRegex },
                         { suggestions: searchRegex },
-                        { 'claimedUsers.enrollmentNumber': searchRegex },
+                        { 'owner.enrollmentNumber': searchRegex },
                     ],
                 },
             });
@@ -88,25 +86,14 @@ const getQuestions = async (req, res) => {
                     searchPriority: {
                         $switch: {
                             branches: [
-                                // Priority 1: Company name match
                                 {
                                     case: { $regexMatch: { input: '$company.name', regex: search, options: 'i' } },
                                     then: 1
                                 },
-                                // Priority 2: Claimed user name match
                                 {
-                                    case: {
-                                        $anyElementTrue: {
-                                            $map: {
-                                                input: { $ifNull: ['$claimedUsers', []] },
-                                                as: 'user',
-                                                in: { $regexMatch: { input: '$$user.fullName', regex: search, options: 'i' } }
-                                            }
-                                        }
-                                    },
+                                    case: { $regexMatch: { input: { $ifNull: ['$owner.fullName', ''] }, regex: search, options: 'i' } },
                                     then: 2
                                 },
-                                // Priority 3: Question or suggestion text match
                                 {
                                     case: {
                                         $or: [
@@ -116,19 +103,6 @@ const getQuestions = async (req, res) => {
                                     },
                                     then: 3
                                 },
-                                // Priority 4: Enrollment number match
-                                {
-                                    case: {
-                                        $anyElementTrue: {
-                                            $map: {
-                                                input: { $ifNull: ['$claimedUsers', []] },
-                                                as: 'user',
-                                                in: { $regexMatch: { input: '$$user.enrollmentNumber', regex: search, options: 'i' } }
-                                            }
-                                        }
-                                    },
-                                    then: 4
-                                }
                             ],
                             default: 5
                         }
@@ -136,7 +110,6 @@ const getQuestions = async (req, res) => {
                 }
             });
 
-            // Sort by priority first, then by user-selected sort
             const sortField = sortBy === 'company' ? 'company.name' : sortBy;
             pipeline.push({
                 $sort: {
@@ -145,7 +118,6 @@ const getQuestions = async (req, res) => {
                 }
             });
         } else {
-            // No search - just apply user-selected sort
             const sortOptions = {};
             const sortField = sortBy === 'company' ? 'company.name' : sortBy;
             sortOptions[sortField] = sortOrder === 'asc' ? 1 : -1;
@@ -162,7 +134,7 @@ const getQuestions = async (req, res) => {
         pipeline.push({ $skip: skip });
         pipeline.push({ $limit: parseInt(limit) });
 
-        // Project fields - anonymized, no user info
+        // Project fields
         pipeline.push({
             $project: {
                 _id: 1,
@@ -172,11 +144,15 @@ const getQuestions = async (req, res) => {
                 year: 1,
                 question: 1,
                 suggestions: 1,
-                claimedBy: 1,
+                questionNumber: 1,
+                submittedBy: 1,
                 createdAt: 1,
                 'company._id': 1,
                 'company.name': 1,
                 'company.logo': 1,
+                'owner._id': 1,
+                'owner.fullName': 1,
+                'owner.enrollmentNumber': 1,
             },
         });
 
@@ -204,7 +180,7 @@ const getQuestion = async (req, res) => {
     try {
         const question = await Question.findById(req.params.id)
             .populate('company', 'name logo')
-            .populate('claimedBy.user', 'fullName enrollmentNumber branch displayPicture');
+            .populate('submittedBy', 'fullName enrollmentNumber branch displayPicture');
 
         if (!question) {
             return res.status(404).json({ message: 'Question not found' });
@@ -217,7 +193,7 @@ const getQuestion = async (req, res) => {
     }
 };
 
-// @desc    Create question
+// @desc    Create question with auto-generated question number
 // @route   POST /api/questions
 // @access  Private
 const createQuestion = async (req, res) => {
@@ -230,10 +206,17 @@ const createQuestion = async (req, res) => {
             return res.status(400).json({ message: 'Company not found' });
         }
 
+        // Auto-generate question number for this company
+        const lastQuestion = await Question.findOne({ company })
+            .sort({ questionNumber: -1 })
+            .select('questionNumber');
+
+        const questionNumber = (lastQuestion?.questionNumber || 0) + 1;
+
         const newQuestion = await Question.create({
-            // submittedBy is optional - can be null for anonymous
             submittedBy: req.user?._id || null,
             company,
+            questionNumber,
             type,
             otherType: type === 'others' ? otherType : null,
             month,
@@ -252,9 +235,9 @@ const createQuestion = async (req, res) => {
     }
 };
 
-// @desc    Update question
+// @desc    Update question (owner or admin only)
 // @route   PUT /api/questions/:id
-// @access  Private (Any authenticated user)
+// @access  Private
 const updateQuestion = async (req, res) => {
     try {
         const question = await Question.findById(req.params.id);
@@ -263,16 +246,29 @@ const updateQuestion = async (req, res) => {
             return res.status(404).json({ message: 'Question not found' });
         }
 
-        // No ownership check - any authenticated user can edit
+        // Check ownership: only owner or admin can edit
+        const isOwner = question.submittedBy && question.submittedBy.toString() === req.user._id.toString();
+        const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+
+        if (!isOwner && !isAdmin) {
+            return res.status(403).json({ message: 'Not authorized to edit this question' });
+        }
+
         const { company, type, otherType, month, year, question: questionText, suggestions } = req.body;
 
-        // If company is being changed, validate it exists
+        // If company is being changed, validate it exists and update question number
         if (company && company !== question.company.toString()) {
             const companyExists = await Company.findById(company);
             if (!companyExists) {
                 return res.status(400).json({ message: 'Company not found' });
             }
             question.company = company;
+
+            // Reassign question number for new company
+            const lastQuestion = await Question.findOne({ company, _id: { $ne: question._id } })
+                .sort({ questionNumber: -1 })
+                .select('questionNumber');
+            question.questionNumber = (lastQuestion?.questionNumber || 0) + 1;
         }
 
         if (type) question.type = type;
@@ -295,9 +291,9 @@ const updateQuestion = async (req, res) => {
     }
 };
 
-// @desc    Delete question
+// @desc    Delete question (owner or admin only)
 // @route   DELETE /api/questions/:id
-// @access  Private (Any authenticated user)
+// @access  Private
 const deleteQuestion = async (req, res) => {
     try {
         const question = await Question.findById(req.params.id);
@@ -306,7 +302,14 @@ const deleteQuestion = async (req, res) => {
             return res.status(404).json({ message: 'Question not found' });
         }
 
-        // No ownership check - any authenticated user can delete
+        // Check ownership: only owner or admin can delete
+        const isOwner = question.submittedBy && question.submittedBy.toString() === req.user._id.toString();
+        const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+
+        if (!isOwner && !isAdmin) {
+            return res.status(403).json({ message: 'Not authorized to delete this question' });
+        }
+
         await question.deleteOne();
 
         res.json({ message: 'Question deleted successfully' });
@@ -316,211 +319,125 @@ const deleteQuestion = async (req, res) => {
     }
 };
 
-// @desc    Claim a question (user associates themselves with it)
-// @route   POST /api/questions/:id/claim
+// @desc    Mark question as visited
+// @route   POST /api/questions/:id/visit
 // @access  Private
-const claimQuestion = async (req, res) => {
+const markVisited = async (req, res) => {
     try {
-        const question = await Question.findById(req.params.id);
+        const questionId = req.params.id;
+        const userId = req.user._id;
 
-        if (!question) {
+        // Check question exists
+        const questionExists = await Question.exists({ _id: questionId });
+        if (!questionExists) {
             return res.status(404).json({ message: 'Question not found' });
         }
 
-        // Check if user already claimed this question
-        const alreadyClaimed = question.claimedBy.some(
-            claim => claim.user.toString() === req.user._id.toString()
+        // Add to visited list if not already there (using $addToSet for efficiency)
+        await User.findByIdAndUpdate(
+            userId,
+            { $addToSet: { visitedQuestions: questionId } },
+            { new: true }
         );
 
-        if (alreadyClaimed) {
-            return res.status(400).json({ message: 'You have already claimed this question' });
-        }
-
-        // Add user to claimedBy array
-        question.claimedBy.push({
-            user: req.user._id,
-            claimedAt: new Date(),
-        });
-
-        await question.save();
-
-        // Return updated question with populated claims
-        const updatedQuestion = await Question.findById(question._id)
-            .populate('company', 'name logo')
-            .populate('claimedBy.user', 'fullName enrollmentNumber branch displayPicture');
-
-        res.json(updatedQuestion);
+        res.json({ success: true });
     } catch (error) {
-        console.error('Claim question error:', error);
+        console.error('Mark visited error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
 
-// @desc    Unclaim a question (user removes their association)
-// @route   DELETE /api/questions/:id/claim
+// @desc    Get user's visited question IDs
+// @route   GET /api/questions/visited
 // @access  Private
-const unclaimQuestion = async (req, res) => {
+const getVisitedQuestions = async (req, res) => {
     try {
-        const question = await Question.findById(req.params.id);
-
-        if (!question) {
-            return res.status(404).json({ message: 'Question not found' });
-        }
-
-        // Find and remove user's claim
-        const claimIndex = question.claimedBy.findIndex(
-            claim => claim.user.toString() === req.user._id.toString()
-        );
-
-        if (claimIndex === -1) {
-            return res.status(400).json({ message: 'You have not claimed this question' });
-        }
-
-        question.claimedBy.splice(claimIndex, 1);
-        await question.save();
-
-        // Return updated question with populated claims
-        const updatedQuestion = await Question.findById(question._id)
-            .populate('company', 'name logo')
-            .populate('claimedBy.user', 'fullName enrollmentNumber branch displayPicture');
-
-        res.json(updatedQuestion);
+        const user = await User.findById(req.user._id).select('visitedQuestions');
+        res.json(user?.visitedQuestions || []);
     } catch (error) {
-        console.error('Unclaim question error:', error);
+        console.error('Get visited questions error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
 
-// @desc    Get user's own questions
-// @route   GET /api/questions/my
+// @desc    Get user's own submissions (questions they own)
+// @route   GET /api/questions/my-submissions
 // @access  Private
-const getMyQuestions = async (req, res) => {
+const getMySubmissions = async (req, res) => {
     try {
-        // Find questions where submittedBy user has matching enrollment number
-        const User = require('../models/User');
-        const usersWithSameEnrollment = await User.find({ enrollmentNumber: req.user.enrollmentNumber }).select('_id');
-        const userIds = usersWithSameEnrollment.map(u => u._id);
-
-        const questions = await Question.find({ submittedBy: { $in: userIds } })
+        const questions = await Question.find({ submittedBy: req.user._id })
             .populate('submittedBy', 'fullName enrollmentNumber branch displayPicture')
             .populate('company', 'name logo')
             .sort({ createdAt: -1 });
 
         res.json(questions);
     } catch (error) {
-        console.error('Get my questions error:', error);
+        console.error('Get my submissions error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
 
-// @desc    Admin: Add a claim for any user
-// @route   POST /api/questions/:id/claim/:userId
-// @access  Private (Admin only)
-const adminAddClaim = async (req, res) => {
-    try {
-        const { id, userId } = req.params;
-
-        const question = await Question.findById(id);
-        if (!question) {
-            return res.status(404).json({ message: 'Question not found' });
-        }
-
-        const targetUser = await User.findById(userId);
-        if (!targetUser) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        // Check if user already claimed
-        const alreadyClaimed = question.claimedBy.some(
-            claim => claim.user.toString() === userId
-        );
-
-        if (alreadyClaimed) {
-            return res.status(400).json({ message: 'User has already claimed this question' });
-        }
-
-        question.claimedBy.push({
-            user: userId,
-            claimedAt: new Date(),
-        });
-
-        await question.save();
-
-        const updatedQuestion = await Question.findById(question._id)
-            .populate('company', 'name logo')
-            .populate('claimedBy.user', 'fullName enrollmentNumber branch displayPicture');
-
-        res.json(updatedQuestion);
-    } catch (error) {
-        console.error('Admin add claim error:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
-};
-
-// @desc    Admin: Remove a claim for any user
-// @route   DELETE /api/questions/:id/claim/:userId
-// @access  Private (Admin only)
-const adminRemoveClaim = async (req, res) => {
-    try {
-        const { id, userId } = req.params;
-
-        const question = await Question.findById(id);
-        if (!question) {
-            return res.status(404).json({ message: 'Question not found' });
-        }
-
-        const claimIndex = question.claimedBy.findIndex(
-            claim => claim.user.toString() === userId
-        );
-
-        if (claimIndex === -1) {
-            return res.status(400).json({ message: 'User has not claimed this question' });
-        }
-
-        question.claimedBy.splice(claimIndex, 1);
-        await question.save();
-
-        const updatedQuestion = await Question.findById(question._id)
-            .populate('company', 'name logo')
-            .populate('claimedBy.user', 'fullName enrollmentNumber branch displayPicture');
-
-        res.json(updatedQuestion);
-    } catch (error) {
-        console.error('Admin remove claim error:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
-};
-
-// @desc    Get count of questions claimed by current user
-// @route   GET /api/questions/my-claims-count
+// @desc    Get count of questions owned by current user
+// @route   GET /api/questions/my-submissions-count
 // @access  Private
-const getMyClaimsCount = async (req, res) => {
+const getMySubmissionsCount = async (req, res) => {
     try {
         const count = await Question.countDocuments({
-            'claimedBy.user': req.user._id
+            submittedBy: req.user._id
         });
         res.json({ count });
     } catch (error) {
-        console.error('Get my claims count error:', error);
+        console.error('Get my submissions count error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
 
-// @desc    Get questions claimed by current user
-// @route   GET /api/questions/my-claims
-// @access  Private
-const getMyClaims = async (req, res) => {
+// @desc    Admin: Transfer question ownership
+// @route   PUT /api/questions/:id/transfer
+// @access  Private (Admin only)
+const transferOwnership = async (req, res) => {
     try {
-        const questions = await Question.find({
-            'claimedBy.user': req.user._id
-        })
-            .populate('company', 'name logo')
-            .populate('claimedBy.user', 'fullName enrollmentNumber branch displayPicture')
-            .sort({ createdAt: -1 });
+        const { newOwnerEnrollment } = req.body;
 
-        res.json(questions);
+        if (!newOwnerEnrollment) {
+            return res.status(400).json({ message: 'New owner enrollment number is required' });
+        }
+
+        const question = await Question.findById(req.params.id);
+        if (!question) {
+            return res.status(404).json({ message: 'Question not found' });
+        }
+
+        // Find new owner by enrollment number
+        const newOwner = await User.findOne({ enrollmentNumber: newOwnerEnrollment });
+        if (!newOwner) {
+            return res.status(404).json({ message: 'User with this enrollment number not found' });
+        }
+
+        // Don't transfer if already owned by this user
+        if (question.submittedBy && question.submittedBy.toString() === newOwner._id.toString()) {
+            return res.status(400).json({ message: 'User already owns this question' });
+        }
+
+        // Add to ownership history
+        question.ownershipHistory.push({
+            previousOwner: question.submittedBy,
+            transferredTo: newOwner._id,
+            transferredBy: req.user._id,
+            date: new Date(),
+        });
+
+        // Transfer ownership
+        question.submittedBy = newOwner._id;
+        await question.save();
+
+        const updatedQuestion = await Question.findById(question._id)
+            .populate('company', 'name logo')
+            .populate('submittedBy', 'fullName enrollmentNumber branch displayPicture');
+
+        res.json(updatedQuestion);
     } catch (error) {
-        console.error('Get my claims error:', error);
+        console.error('Transfer ownership error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -531,11 +448,9 @@ module.exports = {
     createQuestion,
     updateQuestion,
     deleteQuestion,
-    claimQuestion,
-    unclaimQuestion,
-    getMyQuestions,
-    getMyClaims,
-    getMyClaimsCount,
-    adminAddClaim,
-    adminRemoveClaim,
+    markVisited,
+    getVisitedQuestions,
+    getMySubmissions,
+    getMySubmissionsCount,
+    transferOwnership,
 };

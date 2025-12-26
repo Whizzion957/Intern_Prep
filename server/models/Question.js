@@ -5,13 +5,18 @@ const questionSchema = new mongoose.Schema(
         submittedBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
-            required: false, // Made optional - questions are anonymous
+            required: false,
             default: null,
         },
         company: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Company',
             required: true,
+        },
+        // Auto-generated question number per company (e.g., Google #1, #2, #3)
+        questionNumber: {
+            type: Number,
+            default: null,
         },
         type: {
             type: String,
@@ -40,14 +45,21 @@ const questionSchema = new mongoose.Schema(
             type: String,
             default: null,
         },
-        // Users who claim to be related to this question
-        claimedBy: [{
-            user: {
+        // Hidden trail of past owners (for admin reference)
+        ownershipHistory: [{
+            previousOwner: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'User',
-                required: true,
             },
-            claimedAt: {
+            transferredTo: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+            },
+            transferredBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+            },
+            date: {
                 type: Date,
                 default: Date.now,
             },
@@ -63,9 +75,9 @@ questionSchema.index({ question: 'text', suggestions: 'text' });
 
 // Compound index for common queries
 questionSchema.index({ company: 1, year: -1 });
+questionSchema.index({ company: 1, questionNumber: 1 });
 questionSchema.index({ submittedBy: 1, createdAt: -1 });
 
 const Question = mongoose.model('Question', questionSchema);
 
 module.exports = Question;
-

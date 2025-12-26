@@ -61,17 +61,18 @@ export const companyTipAPI = {
 export const questionAPI = {
     getAll: (params) => api.get('/questions', { params }),
     getById: (id) => api.get(`/questions/${id}`),
-    getMy: () => api.get('/questions/my'),
-    getMyClaims: () => api.get('/questions/my-claims'),
-    getMyClaimsCount: () => api.get('/questions/my-claims-count'),
     create: (data) => api.post('/questions', data),
     update: (id, data) => api.put(`/questions/${id}`, data),
     delete: (id) => api.delete(`/questions/${id}`),
-    claim: (id) => api.post(`/questions/${id}/claim`),
-    unclaim: (id) => api.delete(`/questions/${id}/claim`),
-    // Admin: add/remove any user's claim
-    adminAddClaim: (questionId, userId) => api.post(`/questions/${questionId}/claim/${userId}`),
-    adminRemoveClaim: (questionId, userId) => api.delete(`/questions/${questionId}/claim/${userId}`),
+    // Visit tracking
+    markVisited: (id) => api.post(`/questions/${id}/visit`),
+    getVisited: () => api.get('/questions/user/visited'),
+    // My submissions
+    getMySubmissions: () => api.get('/questions/user/my-submissions'),
+    getMySubmissionsCount: () => api.get('/questions/user/my-submissions-count'),
+    // Admin: transfer ownership
+    transferOwnership: (questionId, newOwnerEnrollment) =>
+        api.put(`/questions/${questionId}/transfer`, { newOwnerEnrollment }),
 };
 
 // Admin API
