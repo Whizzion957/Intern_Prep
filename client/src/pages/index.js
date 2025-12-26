@@ -10,3 +10,5 @@ export { default as AdminPanel } from './AdminPanel';
 export { default as Companies } from './Companies';
 export { default as CompanyDetail } from './CompanyDetail';
 export { default as BetaRestricted } from './BetaRestricted';
+export { default as ActivityLogs } from './ActivityLogs';
+

@@ -1,5 +1,6 @@
 const { Company, UG_BRANCHES, PG_BRANCHES, PHD_BRANCHES } = require('../models/Company');
 const { cloudinary, uploadToCloudinary } = require('../config/cloudinary');
+const { logCompany } = require('../services/activityLogger');
 
 // @desc    Get all companies or search
 // @route   GET /api/companies
@@ -100,6 +101,9 @@ const createCompany = async (req, res) => {
             logo: logoUrl,
         });
 
+        // Log the action
+        await logCompany(req.user, 'COMPANY_CREATE', company, req);
+
         res.status(201).json(company);
     } catch (error) {
         console.error('Create company error:', error);
@@ -160,6 +164,10 @@ const updateCompanyDetails = async (req, res) => {
         }
 
         await company.save();
+
+        // Log the action
+        await logCompany(req.user, 'COMPANY_UPDATE', company, req);
+
         res.json(company);
     } catch (error) {
         console.error('Update company details error:', error);

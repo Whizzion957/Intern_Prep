@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context';
 import { CompanySearch, RichTextEditor } from '../components';
@@ -10,6 +10,7 @@ const AddQuestion = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [rateLimit, setRateLimit] = useState(null);
 
     const [formData, setFormData] = useState({
         company: null,
@@ -28,6 +29,21 @@ const AddQuestion = () => {
 
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
+
+    // Fetch rate limit status on mount
+    useEffect(() => {
+        const fetchRateLimits = async () => {
+            try {
+                const { data } = await questionAPI.getRateLimits();
+                if (data.enabled && data.limits?.questions) {
+                    setRateLimit(data.limits.questions);
+                }
+            } catch (err) {
+                // Silently ignore - rate limiting may not be configured
+            }
+        };
+        fetchRateLimits();
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -83,6 +99,23 @@ const AddQuestion = () => {
                 <h1>Add Interview Question</h1>
                 <p>Share your interview experience to help your juniors</p>
             </div>
+
+            {/* Rate Limit Banner */}
+            {rateLimit && (
+                <div className={`rate-limit-banner ${rateLimit.remaining <= 2 ? 'warning' : ''} ${rateLimit.remaining === 0 ? 'error' : ''}`}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span>
+                        {rateLimit.remaining === 0 ? (
+                            <>You've reached your daily limit. Try again later.</>
+                        ) : (
+                            <>Daily quota: <strong>{rateLimit.remaining}</strong> of {rateLimit.limit} questions remaining</>
+                        )}
+                    </span>
+                </div>
+            )}
 
             <form className="add-question-form" onSubmit={handleSubmit}>
 

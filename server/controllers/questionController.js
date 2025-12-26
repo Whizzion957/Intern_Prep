@@ -2,6 +2,7 @@ const Question = require('../models/Question');
 const { Company } = require('../models/Company');
 const User = require('../models/User');
 const mongoose = require('mongoose');
+const { logQuestion, logAdmin } = require('../services/activityLogger');
 
 // @desc    Get all questions with search, filter, and sort
 // @route   GET /api/questions
@@ -228,6 +229,9 @@ const createQuestion = async (req, res) => {
         const populatedQuestion = await Question.findById(newQuestion._id)
             .populate('company', 'name logo');
 
+        // Log the action
+        await logQuestion(req.user, 'QUESTION_CREATE', populatedQuestion, req);
+
         res.status(201).json(populatedQuestion);
     } catch (error) {
         console.error('Create question error:', error);
@@ -284,6 +288,9 @@ const updateQuestion = async (req, res) => {
         const updatedQuestion = await Question.findById(question._id)
             .populate('company', 'name logo');
 
+        // Log the action
+        await logQuestion(req.user, 'QUESTION_UPDATE', updatedQuestion, req);
+
         res.json(updatedQuestion);
     } catch (error) {
         console.error('Update question error:', error);
@@ -309,6 +316,9 @@ const deleteQuestion = async (req, res) => {
         if (!isOwner && !isAdmin) {
             return res.status(403).json({ message: 'Not authorized to delete this question' });
         }
+
+        // Log before deleting
+        await logQuestion(req.user, 'QUESTION_DELETE', question, req);
 
         await question.deleteOne();
 
@@ -435,9 +445,58 @@ const transferOwnership = async (req, res) => {
             .populate('company', 'name logo')
             .populate('submittedBy', 'fullName enrollmentNumber branch displayPicture');
 
+        // Log the transfer
+        await logQuestion(req.user, 'QUESTION_TRANSFER', updatedQuestion, req, {
+            previousOwner: question.ownershipHistory[question.ownershipHistory.length - 1]?.previousOwner,
+            newOwner: newOwner._id,
+            newOwnerEnrollment: newOwner.enrollmentNumber,
+        });
+
         res.json(updatedQuestion);
     } catch (error) {
         console.error('Transfer ownership error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Get rate limit status for current user
+// @route   GET /api/questions/rate-limits
+// @access  Private
+const getRateLimitInfo = async (req, res) => {
+    try {
+        const { getRateLimitStatus, RATE_LIMITS } = require('../middleware/rateLimiter');
+        const { isRedisConnected } = require('../config/redis');
+
+        // If Redis is not connected, return null status
+        if (!isRedisConnected()) {
+            return res.json({
+                enabled: false,
+                message: 'Rate limiting is not active',
+            });
+        }
+
+        const userId = req.user._id.toString();
+        const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+
+        // Get status for all actions
+        const statuses = {};
+        for (const action of Object.keys(RATE_LIMITS)) {
+            const status = await getRateLimitStatus(userId, action);
+            if (status) {
+                // Override limit if admin
+                status.limit = isAdmin ? RATE_LIMITS[action].admin : RATE_LIMITS[action].user;
+                status.remaining = Math.max(0, status.limit - status.used);
+                statuses[action] = status;
+            }
+        }
+
+        res.json({
+            enabled: true,
+            isAdmin,
+            limits: statuses,
+        });
+    } catch (error) {
+        console.error('Get rate limit info error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -453,4 +512,6 @@ module.exports = {
     getMySubmissions,
     getMySubmissionsCount,
     transferOwnership,
+    getRateLimitInfo,
 };
+

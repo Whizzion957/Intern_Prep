@@ -20,6 +20,43 @@
     color: var(--text-secondary);
 }
 
+/* Rate Limit Banner */
+.rate-limit-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.25rem;
+    background: var(--primary-bg);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius);
+    margin-bottom: 1.5rem;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+}
+
+.rate-limit-banner svg {
+    flex-shrink: 0;
+    color: var(--primary);
+}
+
+.rate-limit-banner.warning {
+    background: var(--warning-bg);
+    border-color: var(--warning);
+}
+
+.rate-limit-banner.warning svg {
+    color: var(--warning);
+}
+
+.rate-limit-banner.error {
+    background: var(--error-bg);
+    border-color: var(--error);
+}
+
+.rate-limit-banner.error svg {
+    color: var(--error);
+}
+
 .add-question-form {
     display: flex;
     flex-direction: column;

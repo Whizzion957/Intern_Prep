@@ -70,6 +70,8 @@ export const questionAPI = {
     // My submissions
     getMySubmissions: () => api.get('/questions/user/my-submissions'),
     getMySubmissionsCount: () => api.get('/questions/user/my-submissions-count'),
+    // Rate limits
+    getRateLimits: () => api.get('/questions/user/rate-limits'),
     // Admin: transfer ownership
     transferOwnership: (questionId, newOwnerEnrollment) =>
         api.put(`/questions/${questionId}/transfer`, { newOwnerEnrollment }),
@@ -83,4 +85,13 @@ export const adminAPI = {
     getStats: () => api.get('/admin/stats'),
 };
 
+// Activity Logs API
+export const logsAPI = {
+    getLogs: (params) => api.get('/logs', { params }),
+    getLogStats: () => api.get('/logs/stats'),
+    getActions: () => api.get('/logs/actions'),
+    getLog: (id) => api.get(`/logs/${id}`),
+};
+
 export default api;
+

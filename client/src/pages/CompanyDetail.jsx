@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context';
 import { RichTextEditor } from '../components';
 import { companyAPI, companyTipAPI } from '../services/api';
+import { sanitizeHTML } from '../utils/sanitize';
 import './CompanyDetail.css';
 
 const CompanyDetail = () => {
@@ -165,7 +166,7 @@ const CompanyDetail = () => {
                     </div>
                 </div>
             ) : (
-                <div className="tip-content" dangerouslySetInnerHTML={{ __html: tip.content }} />
+                <div className="tip-content" dangerouslySetInnerHTML={{ __html: sanitizeHTML(tip.content) }} />
             )}
 
             <div className="tip-actions">
@@ -263,7 +264,7 @@ const CompanyDetail = () => {
                 <div className="company-header-info">
                     <h1>{company.name}</h1>
                     {company.description && (
-                        <div className="company-description" dangerouslySetInnerHTML={{ __html: company.description }} />
+                        <div className="company-description" dangerouslySetInnerHTML={{ __html: sanitizeHTML(company.description) }} />
                     )}
                 </div>
                 {isAdmin && (
@@ -333,14 +334,14 @@ const CompanyDetail = () => {
                                 {role.criteria && (
                                     <div className="role-criteria">
                                         <span className="criteria-label">Eligibility Criteria</span>
-                                        <div className="criteria-content" dangerouslySetInnerHTML={{ __html: role.criteria }} />
+                                        <div className="criteria-content" dangerouslySetInnerHTML={{ __html: sanitizeHTML(role.criteria) }} />
                                     </div>
                                 )}
 
                                 {role.perks && role.perks !== '<p><br></p>' && role.perks.replace(/<[^>]*>/g, '').trim() && (
                                     <div className="role-perks">
                                         <span className="perks-label">Perks & Support</span>
-                                        <div className="perks-content" dangerouslySetInnerHTML={{ __html: role.perks }} />
+                                        <div className="perks-content" dangerouslySetInnerHTML={{ __html: sanitizeHTML(role.perks) }} />
                                     </div>
                                 )}
 

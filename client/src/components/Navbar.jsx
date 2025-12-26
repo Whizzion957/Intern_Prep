@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, useTheme } from '../context';
 import { useState, useRef, useEffect } from 'react';
+import { questionAPI } from '../services/api';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -9,6 +10,7 @@ const Navbar = () => {
     const navigate = useNavigate();
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [rateLimits, setRateLimits] = useState(null);
     const dropdownRef = useRef(null);
 
     useEffect(() => {
@@ -20,6 +22,19 @@ const Navbar = () => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Fetch rate limits when dropdown opens
+    useEffect(() => {
+        if (dropdownOpen && user) {
+            questionAPI.getRateLimits()
+                .then(({ data }) => {
+                    if (data.enabled) {
+                        setRateLimits(data.limits);
+                    }
+                })
+                .catch(() => setRateLimits(null));
+        }
+    }, [dropdownOpen, user]);
 
     const handleLogout = async () => {
         await logout();
@@ -144,6 +159,39 @@ const Navbar = () => {
                                     </svg>
                                     My Submissions
                                 </Link>
+                                {/* {rateLimits && (
+                                    <>
+                                        <hr className="dropdown-divider" />
+                                        <div className="dropdown-section-title">Daily Limits</div>
+                                        <div className="rate-limits-grid">
+                                            {rateLimits.questions && (
+                                                <div className="rate-limit-item">
+                                                    <span className="rate-limit-label">Questions</span>
+                                                    <span className={`rate-limit-value ${rateLimits.questions.remaining <= 2 ? 'low' : ''}`}>
+                                                        {rateLimits.questions.remaining}/{rateLimits.questions.limit}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {rateLimits.companies && (
+                                                <div className="rate-limit-item">
+                                                    <span className="rate-limit-label">Companies</span>
+                                                    <span className={`rate-limit-value ${rateLimits.companies.remaining <= 1 ? 'low' : ''}`}>
+                                                        {rateLimits.companies.remaining}/{rateLimits.companies.limit}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {rateLimits.tips && (
+                                                <div className="rate-limit-item">
+                                                    <span className="rate-limit-label">Tips</span>
+                                                    <span className={`rate-limit-value ${rateLimits.tips.remaining <= 5 ? 'low' : ''}`}>
+                                                        {rateLimits.tips.remaining}/{rateLimits.tips.limit}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )} */}
+                                <hr className="dropdown-divider" />
                                 <button className="dropdown-item" onClick={handleLogout}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

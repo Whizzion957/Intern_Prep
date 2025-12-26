@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Question = require('../models/Question');
 const { Company } = require('../models/Company');
+const { logAdmin, logQuestion } = require('../services/activityLogger');
 
 // @desc    Get all users
 // @route   GET /api/admin/users
@@ -68,8 +69,15 @@ const updateUserRole = async (req, res) => {
             return res.status(403).json({ message: 'Cannot change superadmin role' });
         }
 
+        const previousRole = user.role;
         user.role = role;
         await user.save();
+
+        // Log the role change
+        await logAdmin(req.user, 'USER_ROLE_CHANGE', user, 'user', req, {
+            previousRole,
+            newRole: role,
+        });
 
         res.json(user);
     } catch (error) {
@@ -112,6 +120,12 @@ const addQuestionForUser = async (req, res) => {
         const populatedQuestion = await Question.findById(newQuestion._id)
             .populate('submittedBy', 'fullName enrollmentNumber branch displayPicture')
             .populate('company', 'name logo');
+
+        // Log the action
+        await logQuestion(req.user, 'ADMIN_ADD_QUESTION', populatedQuestion, req, {
+            createdFor: user.fullName,
+            createdForId: user._id,
+        });
 
         res.status(201).json(populatedQuestion);
     } catch (error) {

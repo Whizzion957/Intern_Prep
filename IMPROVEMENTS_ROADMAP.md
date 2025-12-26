@@ -1,233 +1,137 @@
 # Intern At IITR - Security & Improvements Roadmap
 
-This document outlines all recommended improvements for security, scalability, and features. Select which items to implement.
+This document outlines all recommended improvements for security, scalability, and features.
 
 ---
 
-## 🔴 CRITICAL: Security Issues
+## ✅ COMPLETED Security Improvements
 
-### 1. Edit/Delete Access Control
-**Current Issue:** Anyone can edit or delete any question, risking DB destruction.
+### 1. Edit/Delete Access Control ✅
+**Status:** IMPLEMENTED
 
-**Solution:** Re-enable owner-only edits with ownership transfer feature.
-
-```javascript
-// Add to Question model
-originalSubmittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Original author
-transferHistory: [{
-    from: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    to: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    transferredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    date: { type: Date, default: Date.now }
-}]
-```
-
-**Admin Ownership Transfer Endpoint:**
-```javascript
-// PUT /api/admin/questions/:id/transfer
-// Only superadmin can transfer ownership
-body: { newOwnerId: "userId" }
-```
-
-| Task | Effort | Priority |
-|------|--------|----------|
-| Add `originalSubmittedBy` field | 30 min | ⬛ Select |
-| Create transfer ownership API | 1 hr | ⬛ Select |
-| Re-enable owner-only delete in middleware | 30 min | ⬛ Select |
-| Update frontend to show original author | 1 hr | ⬛ Select |
+- Owner-only edits/deletes enforced
+- Admin override capability
+- Ownership transfer feature (search by enrollment)
+- Hidden ownership history trail
 
 ---
 
-### 2. Rate Limiting Content Creation
-**Current Issue:** Users can flood DB with unlimited questions, companies, tips.
+### 2. Rate Limiting Content Creation ✅
+**Status:** IMPLEMENTED (Redis-based)
 
-**Solution:** Add rate limits per user per action type.
+**Limits:**
+| Action | User Limit | Admin Limit |
+|--------|------------|-------------|
+| Questions | 10/day | 50/day |
+| Companies | 5/day | 25/day |
+| Tips | 20/day | 100/day |
 
-```javascript
-// Suggested limits
-const contentLimits = {
-    questions: { max: 10, windowHrs: 24 },    // 10 questions/day
-    companies: { max: 5, windowHrs: 24 },     // 5 companies/day
-    tips: { max: 20, windowHrs: 24 },         // 20 tips/day
-    replies: { max: 50, windowHrs: 24 }       // 50 replies/day
-};
-```
-
-**Implementation Options:**
-
-| Option | Pros | Cons | Effort |
-|--------|------|------|--------|
-| A. In-memory rate limit | Simple, works for single server | Resets on restart | 2 hrs |
-| B. MongoDB rate tracking | Persistent, accurate | Adds DB queries | 4 hrs |
-| C. Redis rate limiting | Fast, scalable | Requires Redis setup | 6 hrs |
-
-| Task | Effort | Priority |
-|------|--------|----------|
-| Option A: Basic express-rate-limit per endpoint | 2 hrs | ⬛ Select |
-| Option B: User daily limit tracking in DB | 4 hrs | ⬛ Select |
-| Option C: Redis-based solution | 6 hrs | ⬛ Select |
+**Features:**
+- Upstash Redis integration
+- Graceful fallback if Redis unavailable
+- Rate limit status API endpoint
+- Frontend quota display on AddQuestion page
 
 ---
 
-### 3. XSS Protection (dangerouslySetInnerHTML)
-**Current Issue:** 6 places render HTML without sanitization - XSS risk.
+### 3. XSS Protection ✅
+**Status:** IMPLEMENTED
 
-**Solution:** Add DOMPurify sanitization.
-
-**Files to update:**
-- `CompanyDetail.jsx` (4 places)
-- `QuestionDetail.jsx` (2 places)
-
-```javascript
-import DOMPurify from 'dompurify';
-// Before: dangerouslySetInnerHTML={{ __html: content }}
-// After:  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }}
-```
-
-| Task | Effort | Priority |
-|------|--------|----------|
-| Install dompurify | 5 min | ⬛ Select |
-| Create sanitize utility function | 15 min | ⬛ Select |
-| Update all 6 locations | 30 min | ⬛ Select |
+- DOMPurify installed and integrated
+- Created `sanitize.js` utility
+- All 6 `dangerouslySetInnerHTML` locations sanitized:
+  - CompanyDetail.jsx (4 places)
+  - QuestionDetail.jsx (2 places)
 
 ---
 
-### 4. API Rate Limiting (DDoS Protection)
-**Current Issue:** No request rate limiting - vulnerable to API abuse.
+### 4. API Rate Limiting (DDoS Protection) ✅
+**Status:** IMPLEMENTED
 
-**Solution:**
 ```javascript
-const rateLimit = require('express-rate-limit');
-
-// General API limit
-const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 min
-    max: 200,
-    message: 'Too many requests, please try again later'
-});
-
-// Strict auth limit (prevent brute force)
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10
-});
+// General API limit: 200 requests per 15 minutes
+// Auth limit: 10 requests per 15 minutes (brute force protection)
 ```
-
-| Task | Effort | Priority |
-|------|--------|----------|
-| Install express-rate-limit | 5 min | ⬛ Select |
-| Add API limiter to index.js | 15 min | ⬛ Select |
-| Add stricter auth limiter | 15 min | ⬛ Select |
 
 ---
 
-### 5. NoSQL Injection Protection
-**Current Issue:** No sanitization against MongoDB injection attacks.
+### 5. NoSQL Injection Protection ✅
+**Status:** IMPLEMENTED
 
-**Solution:**
 ```javascript
 const mongoSanitize = require('express-mongo-sanitize');
 app.use(mongoSanitize());
 ```
 
-| Task | Effort | Priority |
-|------|--------|----------|
-| Install & add express-mongo-sanitize | 10 min | ⬛ Select |
+---
+
+### 6. Response Compression ✅
+**Status:** IMPLEMENTED
+
+```javascript
+const compression = require('compression');
+app.use(compression());
+```
 
 ---
 
-### 6. Input Validation
-**Current Issue:** Limited backend validation of user inputs.
+### 7. Question Numbering ✅
+**Status:** IMPLEMENTED
 
-**Solution:** Add express-validator to all POST/PUT routes.
-
-| Task | Effort | Priority |
-|------|--------|----------|
-| Install express-validator | 5 min | ⬛ Select |
-| Add validators to question routes | 1 hr | ⬛ Select |
-| Add validators to company routes | 1 hr | ⬛ Select |
-| Add validators to admin routes | 30 min | ⬛ Select |
+- Auto-generated sequential numbers per company (Google #1, #2, etc.)
+- Migration script for existing questions
+- Displayed on QuestionCard and QuestionDetail
 
 ---
 
-## 🟡 IMPORTANT: Data Protection
+### 8. Visited Questions Tracking ✅
+**Status:** IMPLEMENTED
 
-### 7. Automated Database Backups
-**Current Issue:** No version control or backup system.
-
-**Solution Options:**
-
-#### Option A: MongoDB Atlas Automated Backups (Recommended)
-- Enable in Atlas dashboard
-- Point-in-time recovery available
-- ✅ Pros: Zero code, managed by MongoDB
-- ❌ Cons: Requires paid tier for continuous backup
-
-#### Option B: Custom Backup Script (Self-hosted/Free tier)
-```javascript
-// backup.js - Run via cron job
-const { exec } = require('child_process');
-const cron = require('node-cron');
-
-// Every 4 hours
-cron.schedule('0 */4 * * *', () => {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const cmd = `mongodump --uri="${MONGO_URI}" --out="./backups/${timestamp}"`;
-    exec(cmd, (error, stdout) => {
-        // Log to admin dashboard
-    });
-});
-```
-
-#### Option C: Question Edit History (Soft Version Control)
-```javascript
-// Add to Question model
-editHistory: [{
-    editedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    editedAt: { type: Date, default: Date.now },
-    previousContent: { type: String },
-    changeType: { type: String, enum: ['edit', 'delete', 'restore'] }
-}],
-isDeleted: { type: Boolean, default: false } // Soft delete
-```
-
-| Task | Effort | Priority |
-|------|--------|----------|
-| Option A: Enable Atlas backups | 15 min | ⬛ Select |
-| Option B: Custom backup script + cron | 3 hrs | ⬛ Select |
-| Option C: Add edit history to models | 4 hrs | ⬛ Select |
-| Soft delete instead of hard delete | 2 hrs | ⬛ Select |
+- Green tick on visited question cards
+- Persists across sessions (stored in User model)
+- Automatic marking when viewing question detail
 
 ---
 
-### 8. Admin Activity Logging
-**Current Issue:** No audit trail of admin actions.
+## 🟡 REMAINING: Data Protection
 
-**Solution:** Create admin log system.
+### 9. Automated Database Backups ✅
+**Status:** IMPLEMENTED
 
-```javascript
-// models/AdminLog.js
-const adminLogSchema = new mongoose.Schema({
-    admin: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    action: { type: String, required: true },
-    targetType: { type: String, enum: ['user', 'question', 'company', 'tip'] },
-    targetId: { type: mongoose.Schema.Types.ObjectId },
-    details: { type: mongoose.Schema.Types.Mixed },
-    ip: { type: String },
-    timestamp: { type: Date, default: Date.now }
-});
+- Daily backups at 2 AM UTC (kept for 10 days)
+- Monthly backups at 3 AM UTC on 1st (kept for 12 months)
+- Stored in separate MongoDB database
+- Triggered via cron-job.org
+- Backup/restore functions available
 
-// Logged actions:
-// - Role changes (user promoted/demoted)
-// - Ownership transfers
-// - Content deletions
-// - Batch operations
-```
+---
 
-**Admin Dashboard Addition:**
-- New "Activity Log" tab showing all admin actions
-- Filter by admin, action type, date range
-- Export to CSV
+### 10. Admin Activity Logging ✅
+**Status:** IMPLEMENTED
+
+**Actions logged:**
+- User login/logout
+- Question create/edit/delete/transfer
+- Company create/edit
+- Tip create/edit/delete
+- Admin role changes
+- System errors (with debug info)
+
+**Features:**
+- 30-day auto-delete (TTL index)
+- Admin-only Activity Logs page at `/admin/logs`
+- Filters by action, date range, user, errors
+- Stats dashboard (total, today, errors)
+- Click log for full details modal
+- IP address and user agent tracking
+
+---
+
+### 11. Input Validation
+- Role changes
+- Ownership transfers
+- Content deletions
+- Batch operations
 
 | Task | Effort | Priority |
 |------|--------|----------|
@@ -238,13 +142,25 @@ const adminLogSchema = new mongoose.Schema({
 
 ---
 
-## 🟢 ENHANCEMENTS: Scalability
+### 11. Input Validation
+**Current Issue:** Limited backend validation of user inputs.
 
-### 9. Database Indexing
+| Task | Effort | Priority |
+|------|--------|----------|
+| Install express-validator | 5 min | ⬛ Select |
+| Add validators to question routes | 1 hr | ⬛ Select |
+| Add validators to company routes | 1 hr | ⬛ Select |
+| Add validators to admin routes | 30 min | ⬛ Select |
+
+---
+
+## 🟢 REMAINING: Performance
+
+### 12. Database Indexing
 **Current Issue:** Queries may slow down as data grows.
 
 ```javascript
-// Add to models
+// Suggested indexes
 questionSchema.index({ company: 1, createdAt: -1 });
 questionSchema.index({ submittedBy: 1 });
 questionSchema.index({ '$**': 'text' }); // Full-text search
@@ -258,17 +174,8 @@ companySchema.index({ name: 'text' });
 
 ---
 
-### 10. Response Caching
+### 13. Response Caching
 **Current Issue:** Same data fetched repeatedly.
-
-**Solution:** Cache frequently accessed, rarely changed data.
-
-```javascript
-// Cache candidates:
-// - Branch lists (never changes) - 24hr cache
-// - Company list (rarely changes) - 5min cache
-// - Question stats - 1min cache
-```
 
 | Task | Effort | Priority |
 |------|--------|----------|
@@ -277,66 +184,36 @@ companySchema.index({ name: 'text' });
 
 ---
 
-### 11. Response Compression
-**Current Issue:** Large responses not compressed.
+## 📋 Summary
 
-```javascript
-const compression = require('compression');
-app.use(compression());
-```
+### ✅ Completed (8 items)
+1. Owner-only edits with transfer
+2. Redis rate limiting
+3. XSS protection (DOMPurify)
+4. API rate limiting (DDoS)
+5. NoSQL injection protection
+6. Response compression
+7. Question numbering
+8. Visited questions tracking
 
-| Task | Effort | Priority |
-|------|--------|----------|
-| Install & add compression middleware | 10 min | ⬛ Select |
-
----
-
-## 📋 Implementation Priority Matrix
-
-### Phase 1: Critical Security (Do First)
-- [ ] Re-enable owner-only edits
-- [ ] Add ownership transfer feature
-- [ ] Add API rate limiting
-- [ ] Add XSS sanitization (DOMPurify)
-- [ ] Add NoSQL injection protection
-
-### Phase 2: Content Protection
-- [ ] Add per-user content rate limits
-- [ ] Implement soft deletes
-- [ ] Add edit history tracking
-- [ ] Enable database backups
-
-### Phase 3: Admin Tools
-- [ ] Create admin activity logging
-- [ ] Add activity log UI
-- [ ] Add content moderation tools
-
-### Phase 4: Performance
-- [ ] Add database indexes
-- [ ] Enable response compression
-- [ ] Add caching layer
+### 🔲 Remaining (5 items)
+1. Database backups
+2. Admin activity logging
+3. Input validation (express-validator)
+4. Database indexing
+5. Response caching
 
 ---
 
-## 💰 Effort Summary
+## 💡 What Each Feature Does
 
-| Category | Total Effort | Items |
-|----------|--------------|-------|
-| Critical Security | ~4 hrs | 5 items |
-| Content Protection | ~6 hrs | 4 items |
-| Admin Tools | ~5 hrs | 4 items |
-| Performance | ~5 hrs | 4 items |
-| **Total** | **~20 hrs** | **17 items** |
-
----
-
-## ✅ Quick Wins (< 30 min each)
-1. Install express-rate-limit
-2. Install express-mongo-sanitize  
-3. Install DOMPurify + update 6 files
-4. Install compression middleware
-5. Enable MongoDB Atlas backups (if using Atlas)
-
----
-
-**Instructions:** Mark items with ✅ to select for implementation, then share this document back for me to implement the selected improvements.
+| Feature | Protection Against |
+|---------|-------------------|
+| **Owner-only edits** | Unauthorized data modification/deletion |
+| **Redis rate limiting** | Content flooding, spam |
+| **XSS protection** | Malicious script injection via user content |
+| **API rate limiting** | DDoS attacks, brute force login attempts |
+| **NoSQL injection** | MongoDB query injection attacks |
+| **Response compression** | Bandwidth waste, slow page loads |
+| **Question numbering** | Better organization and reference |
+| **Visited tracking** | Better UX, know what you've read |

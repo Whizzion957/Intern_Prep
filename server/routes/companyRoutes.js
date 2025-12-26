@@ -16,18 +16,19 @@ const {
 } = require('../controllers/companyTipController');
 const { protect, admin } = require('../middleware/auth');
 const { uploadLogo } = require('../config/cloudinary');
+const { createRateLimiter } = require('../middleware/rateLimiter');
 
 // Company routes
 router.get('/branches', getBranchLists);
 router.get('/', getCompanies);
 router.get('/:id', getCompany);
-router.post('/', protect, uploadLogo.single('logo'), createCompany);
+router.post('/', protect, createRateLimiter('companies'), uploadLogo.single('logo'), createCompany);
 router.put('/:id/logo', protect, uploadLogo.single('logo'), updateCompanyLogo);
 router.put('/:id/details', protect, admin, updateCompanyDetails);
 
-// Tips routes (nested under companies)
+// Tips routes (nested under companies) - with rate limiting
 router.get('/:companyId/tips', getTips);
-router.post('/:companyId/tips', protect, createTip);
+router.post('/:companyId/tips', protect, createRateLimiter('tips'), createTip);
 
 // Standalone tip routes
 router.put('/tips/:id', protect, updateTip);

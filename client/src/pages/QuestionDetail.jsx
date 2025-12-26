@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context';
 import { questionAPI, adminAPI } from '../services/api';
+import { sanitizeHTML } from '../utils/sanitize';
 import '../components/RichTextEditor.css';
 import './QuestionDetail.css';
 
@@ -217,7 +218,7 @@ const QuestionDetail = () => {
                     <h2>Question</h2>
                     <div
                         className="question-text rendered-content"
-                        dangerouslySetInnerHTML={{ __html: question.question }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHTML(question.question) }}
                     />
                 </section>
 
@@ -232,7 +233,7 @@ const QuestionDetail = () => {
                         </h2>
                         <div
                             className="suggestions-text rendered-content"
-                            dangerouslySetInnerHTML={{ __html: question.suggestions }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHTML(question.suggestions) }}
                         />
                     </section>
                 )}

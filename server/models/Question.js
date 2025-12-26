@@ -70,13 +70,22 @@ const questionSchema = new mongoose.Schema(
     }
 );
 
-// Create text index for full-text search on question and suggestions
-questionSchema.index({ question: 'text', suggestions: 'text' });
+// ===========================================
+// DATABASE INDEXES
+// ===========================================
+// These speed up common queries significantly:
+//
+// company + year: For listing questions per company sorted by year
+// company + questionNumber: For question number lookups (e.g., Google #5)
+// submittedBy + createdAt: For "My Submissions" page
+// type + createdAt: For filtering by interview/oa type
+// createdAt: For sorting all questions by date
 
-// Compound index for common queries
-questionSchema.index({ company: 1, year: -1 });
-questionSchema.index({ company: 1, questionNumber: 1 });
-questionSchema.index({ submittedBy: 1, createdAt: -1 });
+questionSchema.index({ company: 1, year: -1 });           // Questions by company
+questionSchema.index({ company: 1, questionNumber: 1 });   // Question number lookup
+questionSchema.index({ submittedBy: 1, createdAt: -1 });  // User's submissions
+questionSchema.index({ type: 1, createdAt: -1 });         // Filter by type
+questionSchema.index({ createdAt: -1 });                   // Recent questions
 
 const Question = mongoose.model('Question', questionSchema);
 

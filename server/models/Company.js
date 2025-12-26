@@ -117,8 +117,9 @@ const companySchema = new mongoose.Schema(
     }
 );
 
-// Create text index for search
-companySchema.index({ name: 'text' });
+// Indexes - name already has unique:true and index:true
+// createdAt for sorting by newest
+companySchema.index({ createdAt: -1 });
 
 const Company = mongoose.model('Company', companySchema);
 

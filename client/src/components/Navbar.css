@@ -164,6 +164,42 @@
     margin: 0.5rem 0;
 }
 
+.dropdown-section-title {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    padding: 0.375rem 1rem 0.25rem;
+}
+
+.rate-limits-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.25rem 1rem 0.5rem;
+}
+
+.rate-limit-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8125rem;
+}
+
+.rate-limit-label {
+    color: var(--text-secondary);
+}
+
+.rate-limit-value {
+    font-weight: 600;
+    color: var(--success);
+}
+
+.rate-limit-value.low {
+    color: var(--warning);
+}
+
 /* Mobile nav links wrapper (desktop) */
 .nav-links-desktop {
     display: flex;

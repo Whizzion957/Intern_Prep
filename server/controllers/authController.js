@@ -2,6 +2,7 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const channeliConfig = require('../config/channeli');
+const { logAuth } = require('../services/activityLogger');
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -161,6 +162,9 @@ const callback = async (req, res) => {
         // Generate JWT
         const token = generateToken(user._id);
 
+        // Log successful login
+        await logAuth(user, 'LOGIN', req);
+
         // Redirect to frontend with token
         res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${token}`);
     } catch (error) {
@@ -185,7 +189,12 @@ const getMe = async (req, res) => {
 // @desc    Logout user
 // @route   POST /api/auth/logout
 // @access  Private
-const logout = (req, res) => {
+const logout = async (req, res) => {
+    // Log logout
+    if (req.user) {
+        await logAuth(req.user, 'LOGOUT', req);
+    }
+
     res.cookie('token', '', {
         httpOnly: true,
         expires: new Date(0),

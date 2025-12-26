@@ -1,4 +1,6 @@
 const CompanyTip = require('../models/CompanyTip');
+const { Company } = require('../models/Company');
+const { logTip } = require('../services/activityLogger');
 
 // @desc    Get tips for a company (with nested structure)
 // @route   GET /api/companies/:companyId/tips
@@ -70,6 +72,10 @@ const createTip = async (req, res) => {
         const populatedTip = await CompanyTip.findById(tip._id)
             .populate('author', 'fullName enrollmentNumber branch displayPicture');
 
+        // Log the action (fetch company for logging)
+        const company = await Company.findById(companyId).select('name');
+        await logTip(req.user, 'TIP_CREATE', populatedTip, company, req);
+
         res.status(201).json({ ...populatedTip.toObject(), replies: [] });
     } catch (error) {
         console.error('Create tip error:', error);
@@ -107,6 +113,10 @@ const updateTip = async (req, res) => {
         const populatedTip = await CompanyTip.findById(tip._id)
             .populate('author', 'fullName enrollmentNumber branch displayPicture');
 
+        // Log the action
+        const company = await Company.findById(tip.company).select('name');
+        await logTip(req.user, 'TIP_UPDATE', populatedTip, company, req);
+
         res.json(populatedTip);
     } catch (error) {
         console.error('Update tip error:', error);
@@ -141,6 +151,10 @@ const deleteTip = async (req, res) => {
                 await CompanyTip.deleteOne({ _id: reply._id });
             }
         };
+
+        // Log before deleting
+        const company = await Company.findById(tip.company).select('name');
+        await logTip(req.user, 'TIP_DELETE', tip, company, req);
 
         await deleteReplies(tip._id);
         await CompanyTip.deleteOne({ _id: tip._id });
