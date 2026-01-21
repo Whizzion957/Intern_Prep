@@ -76,6 +76,9 @@ const Navbar = () => {
                             <Link to="/add" className="nav-link">
                                 Add Question
                             </Link>
+                            <Link to="/contributions" className="nav-link">
+                                Credits
+                            </Link>
                             {isSuperAdmin && (
                                 <Link to="/admin" className="nav-link nav-link-admin">
                                     Admin
@@ -244,6 +247,12 @@ const Navbar = () => {
                             <line x1="16" y1="17" x2="8" y2="17" />
                         </svg>
                         My Submissions
+                    </Link>
+                    <Link to="/contributions" className="mobile-menu-item" onClick={closeMobileMenu}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                        Credits
                     </Link>
                     {isSuperAdmin && (
                         <Link to="/admin" className="mobile-menu-item mobile-menu-admin" onClick={closeMobileMenu}>

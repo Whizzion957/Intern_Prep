@@ -16,6 +16,7 @@ import {
   CompanyDetail,
   BetaRestricted,
   ActivityLogs,
+  Contributions,
 } from './pages';
 import './styles/index.css';
 
@@ -119,6 +120,7 @@ function AppContent() {
           <Route path="/companies/:id" element={<CompanyDetail />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/admin/logs" element={<ActivityLogs />} />
+          <Route path="/contributions" element={<Contributions />} />
         </Route>
 
         {/* Catch all */}
