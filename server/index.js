@@ -81,10 +81,10 @@ const apiLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-// Stricter auth rate limit - 10 requests per 15 minutes (prevent brute force)
+// Stricter auth rate limit - 50 requests per 15 minutes (prevent brute force)
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10,
+    max: 50,
     message: {
         error: 'Too many login attempts',
         message: 'Please try again in 15 minutes.',
