@@ -160,4 +160,21 @@ router.get('/status', protect, async (req, res) => {
     }
 });
 
+/**
+ * @route   GET /api/backup/ping
+ * @desc    Keep-warm endpoint for cron job (prevents cold starts)
+ * @access  Public (but requires cron secret for full response)
+ */
+router.get('/ping', (req, res) => {
+    const authHeader = req.headers.authorization;
+    const isAuthorized = authHeader === `Bearer ${CRON_SECRET}`;
+
+    res.json({
+        status: 'ok',
+        warm: true,
+        timestamp: new Date().toISOString(),
+        ...(isAuthorized && { message: 'Authenticated ping - server kept warm' }),
+    });
+});
+
 module.exports = router;
