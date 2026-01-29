@@ -132,7 +132,7 @@ const callback = async (req, res) => {
         // 2. Enrollment year > 23 shows "launching shortly" page
         const enrollmentYear = parseInt(enrollmentNumber.toString().substring(0, 2));
         if (enrollmentYear > 23) {
-            console.log('Beta restriction: Batch > 23 blocked:', enrollmentYear);
+            console.log('Beta restriction: Batch > 24 blocked:', enrollmentYear);
             return res.redirect(`${process.env.CLIENT_URL}/beta-restricted?reason=batch&year=${enrollmentYear}`);
         }
         // ============ END BETA RESTRICTIONS ============
