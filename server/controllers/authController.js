@@ -129,9 +129,9 @@ const callback = async (req, res) => {
             return res.redirect(`${process.env.CLIENT_URL}/beta-restricted?reason=department&branch=${encodeURIComponent(branch)}`);
         }
 
-        // 2. Enrollment year > 23 shows "launching shortly" page
+        // 2. Enrollment year > 24 shows "launching shortly" page
         const enrollmentYear = parseInt(enrollmentNumber.toString().substring(0, 2));
-        if (enrollmentYear > 23) {
+        if (enrollmentYear > 24) {
             console.log('Beta restriction: Batch > 24 blocked:', enrollmentYear);
             return res.redirect(`${process.env.CLIENT_URL}/beta-restricted?reason=batch&year=${enrollmentYear}`);
         }
