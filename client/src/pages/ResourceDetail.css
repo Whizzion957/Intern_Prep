@@ -109,10 +109,10 @@
     color: var(--text-primary);
     line-height: 1.7;
     font-size: 1.05rem;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
     word-break: normal;
+    overflow-wrap: normal;
     max-width: 100%;
+    overflow-x: auto;
 }
 
 .rich-text-content img {
@@ -139,8 +139,6 @@
     border-radius: 8px;
     overflow-x: auto;
     margin-bottom: 1.5rem;
-    white-space: pre-wrap;
-    word-wrap: break-word;
 }
 
 .rich-text-content code {
