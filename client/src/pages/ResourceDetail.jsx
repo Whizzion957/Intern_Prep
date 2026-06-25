@@ -104,9 +104,18 @@ const ResourceDetail = () => {
                     <div className="resource-meta">
                         <span className="badge badge-primary category-badge">{resource.category}</span>
                         <span className="meta-divider">•</span>
-                        <span className="meta-text">
-                            Added by <span className="meta-owner">{resource.submittedBy?.fullName || 'Unknown'}</span>
-                        </span>
+                        <div className="meta-user">
+                            <div className="resource-detail-avatar">
+                                {resource.submittedBy?.displayPicture ? (
+                                    <img src={resource.submittedBy.displayPicture} alt={resource.submittedBy?.fullName} />
+                                ) : (
+                                    <span>{resource.submittedBy?.fullName?.charAt(0).toUpperCase() || '?'}</span>
+                                )}
+                            </div>
+                            <span className="meta-text">
+                                Added by <span className="meta-owner">{resource.submittedBy?.fullName || 'Unknown'}</span>
+                            </span>
+                        </div>
                         <span className="meta-divider">•</span>
                         <span className="meta-text">
                             {new Date(resource.createdAt).toLocaleDateString('en-US', {
