@@ -15,6 +15,11 @@ const RATE_LIMITS = {
         admin: 50,
         window: 24 * 60 * 60, // 24 hours in seconds
     },
+    resources: {
+        user: 10,
+        admin: 50,
+        window: 24 * 60 * 60,
+    },
     companies: {
         user: 5,
         admin: 25,

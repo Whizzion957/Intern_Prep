@@ -17,6 +17,10 @@ import {
   BetaRestricted,
   ActivityLogs,
   Contributions,
+  Resources,
+  AddResource,
+  ResourceDetail,
+  EditResource,
 } from './pages';
 import './styles/index.css';
 
@@ -121,6 +125,10 @@ function AppContent() {
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/admin/logs" element={<ActivityLogs />} />
           <Route path="/contributions" element={<Contributions />} />
+          <Route path="/resources" element={<Resources />} />
+          <Route path="/add-resource" element={<AddResource />} />
+          <Route path="/resources/:id" element={<ResourceDetail />} />
+          <Route path="/resources/:id/edit" element={<EditResource />} />
         </Route>
 
         {/* Catch all */}

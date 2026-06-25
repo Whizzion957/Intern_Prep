@@ -77,6 +77,16 @@ export const questionAPI = {
         api.put(`/questions/${questionId}/transfer`, { newOwnerEnrollment }),
 };
 
+// Resource API
+export const resourceAPI = {
+    getAll: (params) => api.get('/resources', { params }),
+    getCategories: () => api.get('/resources/categories'),
+    getById: (id) => api.get(`/resources/${id}`),
+    create: (data) => api.post('/resources', data),
+    update: (id, data) => api.put(`/resources/${id}`, data),
+    delete: (id) => api.delete(`/resources/${id}`),
+};
+
 // Admin API
 export const adminAPI = {
     getUsers: (params) => api.get('/admin/users', { params }),

@@ -197,6 +197,25 @@ const logBackup = async (type, success, stats = null, error = null) => {
     });
 };
 
+/**
+ * Log resource action
+ */
+const logResource = async (user, action, resource, req, metadata = null) => {
+    await logActivity({
+        user,
+        action,
+        targetType: 'resource',
+        targetId: resource?._id,
+        targetInfo: {
+            title: resource?.title,
+            category: resource?.category,
+        },
+        req,
+        description: `${user?.fullName} ${action.replace('RESOURCE_', '').toLowerCase()} resource "${resource?.title}"`,
+        metadata,
+    });
+};
+
 module.exports = {
     logActivity,
     logAuth,
@@ -206,4 +225,5 @@ module.exports = {
     logAdmin,
     logError,
     logBackup,
+    logResource,
 };

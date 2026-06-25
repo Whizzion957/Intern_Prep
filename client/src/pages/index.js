@@ -12,3 +12,7 @@ export { default as CompanyDetail } from './CompanyDetail';
 export { default as BetaRestricted } from './BetaRestricted';
 export { default as ActivityLogs } from './ActivityLogs';
 export { default as Contributions } from './Contributions';
+export { default as Resources } from './Resources';
+export { default as AddResource } from './AddResource';
+export { default as ResourceDetail } from './ResourceDetail';
+export { default as EditResource } from './EditResource';

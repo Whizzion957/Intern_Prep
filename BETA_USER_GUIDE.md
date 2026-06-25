@@ -11,8 +11,6 @@ Welcome to the **Intern At IITR** beta! This guide will help you get started wit
 2. Authenticate using your IIT Roorkee credentials
 3. You'll be redirected to your dashboard
 
-> **Note:** Beta access is currently limited to CSE department (batches graduating 2027 and earlier).
-
 ---
 
 ## 📊 Dashboard

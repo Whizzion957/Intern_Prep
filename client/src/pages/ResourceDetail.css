@@ -1,0 +1,154 @@
+.resource-detail-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    color: var(--text-secondary);
+}
+
+.back-btn:hover {
+    color: var(--text-primary);
+}
+
+.resource-detail-content {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.resource-header {
+    padding: 2rem 2.5rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+}
+
+.resource-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.resource-title-row h1 {
+    font-size: 2.25rem;
+    color: var(--text-primary);
+    line-height: 1.3;
+    margin: 0;
+}
+
+.resource-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.resource-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.category-badge {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.75rem;
+}
+
+.meta-divider {
+    color: var(--text-tertiary);
+}
+
+.meta-owner {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.resource-body {
+    padding: 2.5rem;
+}
+
+/* Reusing existing rich-text-content styles globally or local overrides */
+.rich-text-content {
+    color: var(--text-primary);
+    line-height: 1.7;
+    font-size: 1.05rem;
+}
+
+.rich-text-content h1,
+.rich-text-content h2,
+.rich-text-content h3 {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.rich-text-content p {
+    margin-bottom: 1.5rem;
+}
+
+.rich-text-content pre {
+    background: var(--surface-2);
+    padding: 1.5rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+}
+
+.rich-text-content code {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+}
+
+.error-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--surface-1);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.error-state h2 {
+    font-size: 2rem;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.error-state p {
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+    .resource-header,
+    .resource-body {
+        padding: 1.5rem;
+    }
+
+    .resource-title-row {
+        flex-direction: column;
+    }
+
+    .resource-title-row h1 {
+        font-size: 1.75rem;
+    }
+
+    .resource-actions {
+        width: 100%;
+    }
+
+    .resource-actions .btn {
+        flex: 1;
+        justify-content: center;
+    }
+}
