@@ -4,6 +4,12 @@
     padding: 2rem 1rem;
 }
 
+.resource-detail-page,
+.resource-detail-page * {
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+}
+
 .back-btn {
     display: inline-flex;
     align-items: center;
@@ -105,12 +111,16 @@
 }
 
 /* Reusing existing rich-text-content styles globally or local overrides */
+.rich-text-content,
+.rich-text-content * {
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+}
+
 .rich-text-content {
     color: var(--text-primary);
     line-height: 1.7;
     font-size: 1.05rem;
-    word-break: normal;
-    overflow-wrap: break-word;
     max-width: 100%;
 }
 
