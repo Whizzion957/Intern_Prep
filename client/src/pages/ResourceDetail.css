@@ -110,9 +110,8 @@
     line-height: 1.7;
     font-size: 1.05rem;
     word-break: normal;
-    overflow-wrap: normal;
+    overflow-wrap: break-word;
     max-width: 100%;
-    overflow-x: auto;
 }
 
 .rich-text-content img {
@@ -139,6 +138,7 @@
     border-radius: 8px;
     overflow-x: auto;
     margin-bottom: 1.5rem;
+    white-space: pre-wrap;
 }
 
 .rich-text-content code {
