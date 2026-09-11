@@ -27,6 +27,12 @@ const userSchema = new mongoose.Schema(
             trim: true,
             index: true,
         },
+        // Raw Google display name from the last login, e.g. "AADIT KUMAR SAHOO 23114001".
+        // Kept so admins can spot users who changed their name (Admin Panel -> Manage Users).
+        googleName: {
+            type: String,
+            default: null,
+        },
         // Department code from the email subdomain, e.g. 'cs'
         department: {
             type: String,

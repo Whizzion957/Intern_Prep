@@ -94,6 +94,52 @@ const updateUserRole = async (req, res) => {
     }
 };
 
+// @desc    Set or clear a user's enrollment number
+// @route   PUT /api/admin/users/:id/enrollment
+// @access  Private (Superadmin only)
+const updateUserEnrollment = async (req, res) => {
+    try {
+        const enrollmentNumber = String(req.body.enrollmentNumber ?? '').trim();
+
+        if (enrollmentNumber && !/^\d{6,10}$/.test(enrollmentNumber)) {
+            return res.status(400).json({ message: 'Enrollment number must be 6-10 digits, or empty to clear it.' });
+        }
+
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (enrollmentNumber) {
+            const owner = await User.findOne({ enrollmentNumber, _id: { $ne: user._id } });
+            if (owner) {
+                return res.status(409).json({
+                    message: `${enrollmentNumber} already belongs to ${owner.fullName} (${owner.email}).`,
+                });
+            }
+        }
+
+        const previous = user.enrollmentNumber || null;
+        if (enrollmentNumber) {
+            user.enrollmentNumber = enrollmentNumber;
+        } else {
+            user.set('enrollmentNumber', undefined);
+        }
+        await user.save();
+
+        await logAdmin(req.user, 'USER_ENROLLMENT_CHANGE', user, 'user', req, {
+            previousEnrollment: previous,
+            newEnrollment: enrollmentNumber || null,
+            googleName: user.googleName,
+        });
+
+        res.json(user);
+    } catch (error) {
+        console.error('Update user enrollment error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 // @desc    Add question for any user (superadmin only)
 // @route   POST /api/admin/questions
 // @access  Private (Superadmin only)
@@ -317,4 +363,12 @@ const updateAccessRules = async (req, res) => {
     }
 };
 
-module.exports = { getUsers, updateUserRole, addQuestionForUser, getStats, getAccessRules, updateAccessRules };
+module.exports = {
+    getUsers,
+    updateUserRole,
+    updateUserEnrollment,
+    addQuestionForUser,
+    getStats,
+    getAccessRules,
+    updateAccessRules,
+};

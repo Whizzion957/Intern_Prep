@@ -5,6 +5,25 @@ import { CompanySearch, AccessControlPanel } from '../components';
 import { adminAPI, questionAPI } from '../services/api';
 import './AdminPanel.css';
 
+// IITR Google names end with the enrollment number: "AADIT KUMAR SAHOO 23114001"
+const enrollmentInName = (googleName) => {
+    const match = /^(?:.*\S)\s+(\d{6,10})$/.exec(String(googleName || '').trim());
+    return match ? match[1] : null;
+};
+
+// Users worth an admin's attention: no enrollment number, or a Google name that
+// disagrees with the stored one (someone may have edited their Google name).
+const reviewNote = (user) => {
+    const fromName = enrollmentInName(user.googleName);
+    if (!user.enrollmentNumber) {
+        return fromName ? `No enrollment number; Google name says ${fromName}` : 'No enrollment number';
+    }
+    if (fromName && fromName !== user.enrollmentNumber) {
+        return `Google name says ${fromName}`;
+    }
+    return null;
+};
+
 const AdminPanel = () => {
     const { user, isSuperAdmin } = useAuth();
     const navigate = useNavigate();
@@ -14,6 +33,10 @@ const AdminPanel = () => {
     const [loading, setLoading] = useState(true);
     const [searchUser, setSearchUser] = useState('');
     const [searchLoading, setSearchLoading] = useState(false);
+    const [reviewOnly, setReviewOnly] = useState(false);
+    const [editingUser, setEditingUser] = useState(null);
+    const [enrollmentDraft, setEnrollmentDraft] = useState('');
+    const [savingEnrollment, setSavingEnrollment] = useState(false);
 
     // Add question for user form
     const [selectedUser, setSelectedUser] = useState(null);
@@ -101,6 +124,19 @@ const AdminPanel = () => {
         }
     };
 
+    const handleEnrollmentSave = async (userId) => {
+        setSavingEnrollment(true);
+        try {
+            const { data } = await adminAPI.updateUserEnrollment(userId, enrollmentDraft.trim());
+            setUsers(users.map((u) => (u._id === userId ? { ...u, enrollmentNumber: data.enrollmentNumber } : u)));
+            setEditingUser(null);
+        } catch (error) {
+            alert(error.response?.data?.message || 'Failed to update enrollment number');
+        } finally {
+            setSavingEnrollment(false);
+        }
+    };
+
     const handleAddQuestionForUser = async (e) => {
         e.preventDefault();
         if (!selectedUser || !formData.company || !formData.question.trim()) {
@@ -144,7 +180,8 @@ const AdminPanel = () => {
     };
 
     // Display users directly (already filtered server-side)
-    const displayedUsers = users;
+    const reviewCount = users.filter((u) => reviewNote(u)).length;
+    const displayedUsers = reviewOnly ? users.filter((u) => reviewNote(u)) : users;
 
     const months = [
         'January', 'February', 'March', 'April', 'May', 'June',
@@ -268,6 +305,15 @@ const AdminPanel = () => {
                         />
                     </div>
 
+                    <label className="review-filter">
+                        <input
+                            type="checkbox"
+                            checked={reviewOnly}
+                            onChange={(e) => setReviewOnly(e.target.checked)}
+                        />
+                        <span>Needs review ({reviewCount})</span>
+                    </label>
+
                     <div className="users-table-wrapper">
                         <table className="users-table">
                             <thead>
@@ -294,7 +340,50 @@ const AdminPanel = () => {
                                                 <span>{u.fullName}</span>
                                             </div>
                                         </td>
-                                        <td>{u.enrollmentNumber || u.email}</td>
+                                        <td>
+                                            {editingUser === u._id ? (
+                                                <div className="enrollment-edit">
+                                                    <input
+                                                        type="text"
+                                                        className="form-input"
+                                                        value={enrollmentDraft}
+                                                        onChange={(e) => setEnrollmentDraft(e.target.value)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && handleEnrollmentSave(u._id)}
+                                                        placeholder="e.g. 23114001"
+                                                        autoFocus
+                                                    />
+                                                    <button
+                                                        className="btn btn-primary btn-sm"
+                                                        onClick={() => handleEnrollmentSave(u._id)}
+                                                        disabled={savingEnrollment}
+                                                    >
+                                                        Save
+                                                    </button>
+                                                    <button className="btn btn-ghost btn-sm" onClick={() => setEditingUser(null)}>
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="enrollment-cell">
+                                                    <span>{u.enrollmentNumber || u.email}</span>
+                                                    <button
+                                                        className="btn btn-ghost btn-sm"
+                                                        title="Edit enrollment number"
+                                                        onClick={() => {
+                                                            setEditingUser(u._id);
+                                                            setEnrollmentDraft(u.enrollmentNumber || '');
+                                                        }}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    {reviewNote(u) && (
+                                                        <span className="enrollment-note" title={u.googleName || ''}>
+                                                            {reviewNote(u)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </td>
                                         <td>{u.branch}</td>
                                         <td>
                                             <span className={`role-badge role-${u.role}`}>

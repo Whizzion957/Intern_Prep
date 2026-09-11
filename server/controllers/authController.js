@@ -89,6 +89,7 @@ const googleLogin = async (req, res) => {
             user.email = parsed.email;
             user.fullName = user.fullName || googleName.fullName || parsed.email;
             user.displayPicture = payload.picture || user.displayPicture;
+            user.googleName = payload.name || null;
             user.department = parsed.department;
             if (enrollmentNumber) {
                 user.enrollmentNumber = enrollmentNumber;
@@ -101,6 +102,7 @@ const googleLogin = async (req, res) => {
             user = await User.create({
                 email: parsed.email,
                 fullName: googleName.fullName || parsed.email,
+                googleName: payload.name || null,
                 displayPicture: payload.picture || null,
                 department: parsed.department,
                 branch,

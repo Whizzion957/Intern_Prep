@@ -107,6 +107,7 @@ export const resourceAPI = {
 export const adminAPI = {
     getUsers: (params) => api.get('/admin/users', { params }),
     updateUserRole: (id, role) => api.put(`/admin/users/${id}/role`, { role }),
+    updateUserEnrollment: (id, enrollmentNumber) => api.put(`/admin/users/${id}/enrollment`, { enrollmentNumber }),
     addQuestionForUser: (data) => api.post('/admin/questions', data),
     getStats: () => api.get('/admin/stats'),
     getAccessRules: () => api.get('/admin/access'),

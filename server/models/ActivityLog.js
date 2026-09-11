@@ -35,7 +35,7 @@ const activityLogSchema = new mongoose.Schema({
             // Tip actions
             'TIP_CREATE', 'TIP_UPDATE', 'TIP_DELETE',
             // Admin actions
-            'USER_ROLE_CHANGE', 'ADMIN_ADD_QUESTION', 'ACCESS_RULES_UPDATE',
+            'USER_ROLE_CHANGE', 'USER_ENROLLMENT_CHANGE', 'ADMIN_ADD_QUESTION', 'ACCESS_RULES_UPDATE',
             // System actions
             'BACKUP_DAILY', 'BACKUP_MONTHLY', 'SYSTEM_ERROR',
         ],
