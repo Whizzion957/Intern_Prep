@@ -17,8 +17,8 @@ const { protect, admin } = require('../middleware/auth');
 const { createRateLimiter } = require('../middleware/rateLimiter');
 
 // Public routes
-router.get('/', getQuestions);
-router.get('/:id', getQuestion);
+router.get('/', protect, getQuestions);
+router.get('/:id', protect, getQuestion);
 
 // Protected routes - with rate limiting on create
 router.post('/', protect, createRateLimiter('questions'), createQuestion);

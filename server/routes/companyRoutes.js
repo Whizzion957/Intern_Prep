@@ -19,15 +19,15 @@ const { uploadLogo } = require('../config/cloudinary');
 const { createRateLimiter } = require('../middleware/rateLimiter');
 
 // Company routes
-router.get('/branches', getBranchLists);
-router.get('/', getCompanies);
-router.get('/:id', getCompany);
+router.get('/branches', protect, getBranchLists);
+router.get('/', protect, getCompanies);
+router.get('/:id', protect, getCompany);
 router.post('/', protect, createRateLimiter('companies'), uploadLogo.single('logo'), createCompany);
 router.put('/:id/logo', protect, uploadLogo.single('logo'), updateCompanyLogo);
 router.put('/:id/details', protect, admin, updateCompanyDetails);
 
 // Tips routes (nested under companies) - with rate limiting
-router.get('/:companyId/tips', getTips);
+router.get('/:companyId/tips', protect, getTips);
 router.post('/:companyId/tips', protect, createRateLimiter('tips'), createTip);
 
 // Standalone tip routes

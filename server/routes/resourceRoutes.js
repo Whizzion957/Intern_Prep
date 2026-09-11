@@ -12,9 +12,9 @@ const { protect } = require('../middleware/auth');
 const { createRateLimiter } = require('../middleware/rateLimiter');
 
 // Public routes
-router.get('/', getResources);
-router.get('/categories', getCategories);
-router.get('/:id', getResource);
+router.get('/', protect, getResources);
+router.get('/categories', protect, getCategories);
+router.get('/:id', protect, getResource);
 
 // Protected routes - with rate limiting on create
 router.post('/', protect, createRateLimiter('resources'), createResource);
