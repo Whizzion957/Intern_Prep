@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context';
-import { CompanySearch } from '../components';
+import { CompanySearch, AccessControlPanel } from '../components';
 import { adminAPI, questionAPI } from '../services/api';
 import './AdminPanel.css';
 
@@ -241,7 +241,16 @@ const AdminPanel = () => {
                 >
                     Add Question for User
                 </button>
+                <button
+                    className={`tab ${activeTab === 'access' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('access')}
+                >
+                    Access Control
+                </button>
             </div>
+
+            {/* Access Control Tab */}
+            {activeTab === 'access' && <AccessControlPanel />}
 
             {/* Users Tab */}
             {activeTab === 'users' && (
@@ -264,7 +273,7 @@ const AdminPanel = () => {
                             <thead>
                                 <tr>
                                     <th>User</th>
-                                    <th>Enrollment</th>
+                                    <th>Enrollment / Email</th>
                                     <th>Branch</th>
                                     <th>Role</th>
                                     <th>Actions</th>
@@ -285,7 +294,7 @@ const AdminPanel = () => {
                                                 <span>{u.fullName}</span>
                                             </div>
                                         </td>
-                                        <td>{u.enrollmentNumber}</td>
+                                        <td>{u.enrollmentNumber || u.email}</td>
                                         <td>{u.branch}</td>
                                         <td>
                                             <span className={`role-badge role-${u.role}`}>
@@ -345,7 +354,7 @@ const AdminPanel = () => {
                                     </div>
                                     <div className="user-info">
                                         <span className="name">{selectedUser.fullName}</span>
-                                        <span className="details">{selectedUser.enrollmentNumber} • {selectedUser.branch}</span>
+                                        <span className="details">{selectedUser.enrollmentNumber || selectedUser.email} • {selectedUser.branch}</span>
                                     </div>
                                     <button
                                         className="btn btn-ghost btn-sm"
@@ -375,7 +384,7 @@ const AdminPanel = () => {
                                                     }}
                                                 >
                                                     <span className="name">{u.fullName}</span>
-                                                    <span className="enrollment">{u.enrollmentNumber}</span>
+                                                    <span className="enrollment">{u.enrollmentNumber || u.email}</span>
                                                 </div>
                                             ))}
                                         </div>

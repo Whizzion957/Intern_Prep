@@ -82,10 +82,10 @@ const QuestionDetail = () => {
     };
 
     const handleTransferOwnership = async () => {
-        const enrollmentToTransfer = selectedUser?.enrollmentNumber || newOwnerEnrollment.trim();
+        const enrollmentToTransfer = selectedUser?.enrollmentNumber || selectedUser?.email || newOwnerEnrollment.trim();
 
         if (!enrollmentToTransfer) {
-            setTransferError('Please select or enter an enrollment number');
+            setTransferError('Please select or enter an enrollment number or email');
             return;
         }
 
@@ -109,7 +109,7 @@ const QuestionDetail = () => {
 
     const handleSelectUser = (user) => {
         setSelectedUser(user);
-        setNewOwnerEnrollment(user.enrollmentNumber);
+        setNewOwnerEnrollment(user.enrollmentNumber || user.email);
         setUserSearchResults([]);
     };
 
@@ -349,7 +349,7 @@ const QuestionDetail = () => {
                                     <div className="selected-user-tag">
                                         <div className="selected-user-info">
                                             <span className="selected-user-name">{selectedUser.fullName}</span>
-                                            <span className="selected-user-enrollment">{selectedUser.enrollmentNumber}</span>
+                                            <span className="selected-user-enrollment">{selectedUser.enrollmentNumber || selectedUser.email}</span>
                                         </div>
                                         <button
                                             type="button"
@@ -367,7 +367,7 @@ const QuestionDetail = () => {
                                     <div className="user-search-container">
                                         <input
                                             type="text"
-                                            placeholder="Search by name or enrollment number..."
+                                            placeholder="Search by name, enrollment number or email..."
                                             value={newOwnerEnrollment}
                                             onChange={(e) => setNewOwnerEnrollment(e.target.value)}
                                             disabled={transferring}
@@ -392,7 +392,7 @@ const QuestionDetail = () => {
                                                         </div>
                                                         <div className="user-result-info">
                                                             <span className="user-result-name">{user.fullName}</span>
-                                                            <span className="user-result-enrollment">{user.enrollmentNumber}</span>
+                                                            <span className="user-result-enrollment">{user.enrollmentNumber || user.email}</span>
                                                         </div>
                                                     </div>
                                                 ))}

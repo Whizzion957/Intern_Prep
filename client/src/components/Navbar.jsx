@@ -151,7 +151,7 @@ const Navbar = () => {
                                 <div className="dropdown-header">
                                     <div className="user-info">
                                         <span className="user-full-name">{user.fullName}</span>
-                                        <span className="user-enrollment">{user.enrollmentNumber}</span>
+                                        <span className="user-enrollment">{user.enrollmentNumber || user.email}</span>
                                         <span className="user-branch">{user.branch}</span>
                                     </div>
                                 </div>

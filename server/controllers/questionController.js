@@ -418,10 +418,13 @@ const transferOwnership = async (req, res) => {
             return res.status(404).json({ message: 'Question not found' });
         }
 
-        // Find new owner by enrollment number
-        const newOwner = await User.findOne({ enrollmentNumber: newOwnerEnrollment });
+        // Find new owner by enrollment number or email (Google users have no enrollment number)
+        const identifier = String(newOwnerEnrollment).trim();
+        const newOwner = await User.findOne({
+            $or: [{ enrollmentNumber: identifier }, { email: identifier.toLowerCase() }],
+        });
         if (!newOwner) {
-            return res.status(404).json({ message: 'User with this enrollment number not found' });
+            return res.status(404).json({ message: 'User with this enrollment number or email not found' });
         }
 
         // Don't transfer if already owned by this user
@@ -449,7 +452,7 @@ const transferOwnership = async (req, res) => {
         await logQuestion(req.user, 'QUESTION_TRANSFER', updatedQuestion, req, {
             previousOwner: question.ownershipHistory[question.ownershipHistory.length - 1]?.previousOwner,
             newOwner: newOwner._id,
-            newOwnerEnrollment: newOwner.enrollmentNumber,
+            newOwnerEnrollment: newOwner.enrollmentNumber || newOwner.email,
         });
 
         res.json(updatedQuestion);

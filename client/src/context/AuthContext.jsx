@@ -38,25 +38,19 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const login = async () => {
+    // Called with the ID token from the "Sign in with Google" button
+    const loginWithGoogle = async (credential) => {
+        setError(null);
         try {
-            const { data } = await authAPI.getLoginUrl();
-            window.location.href = data.authUrl;
+            const { data } = await authAPI.googleLogin(credential);
+            localStorage.setItem('token', data.token);
+            setUser(data.user);
         } catch (err) {
-            setError('Failed to initiate login');
+            // Access-denied responses are redirected by the api interceptor
+            if (err.response?.data?.code !== 'ACCESS_DENIED') {
+                setError(err.response?.data?.message || 'Login failed. Please try again.');
+            }
             console.error('Login error:', err);
-        }
-    };
-
-    const handleCallback = async (token) => {
-        localStorage.setItem('token', token);
-        try {
-            const { data } = await authAPI.getMe();
-            setUser(data);
-            return data;
-        } catch (err) {
-            localStorage.removeItem('token');
-            throw err;
         }
     };
 
@@ -80,9 +74,9 @@ export const AuthProvider = ({ children }) => {
                 user,
                 loading,
                 error,
-                login,
+                loginWithGoogle,
+                setError,
                 logout,
-                handleCallback,
                 checkAuth,
                 isAdmin,
                 isSuperAdmin,

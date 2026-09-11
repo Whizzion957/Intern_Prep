@@ -41,6 +41,7 @@ const logActivity = async (options) => {
             userInfo: user ? {
                 name: user.fullName || user.name,
                 enrollmentNumber: user.enrollmentNumber,
+                email: user.email,
                 role: user.role,
             } : null,
             action,

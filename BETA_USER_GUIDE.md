@@ -7,7 +7,7 @@ Welcome to the **Intern At IITR** beta! This guide will help you get started wit
 ## 🔐 Getting Started
 
 ### Logging In
-1. Click **"Login with Channel-i"** on the homepage
+1. Click **"Sign in with Google"** on the homepage and choose your IITR email (@iitr.ac.in)
 2. Authenticate using your IIT Roorkee credentials
 3. You'll be redirected to your dashboard
 

@@ -206,7 +206,7 @@ const ActivityLogs = () => {
                                         <div className="log-meta">
                                             {log.userInfo && (
                                                 <span className="log-user">
-                                                    {log.userInfo.name} ({log.userInfo.enrollmentNumber})
+                                                    {log.userInfo.name} ({log.userInfo.enrollmentNumber || log.userInfo.email})
                                                 </span>
                                             )}
                                             <span className="log-time">{formatDate(log.createdAt)}</span>
@@ -260,7 +260,7 @@ const ActivityLogs = () => {
                                     </div>
                                     <div className="detail-row">
                                         <span className="label">Enrollment:</span>
-                                        <span>{selectedLog.userInfo.enrollmentNumber}</span>
+                                        <span>{selectedLog.userInfo.enrollmentNumber || selectedLog.userInfo.email}</span>
                                     </div>
                                     <div className="detail-row">
                                         <span className="label">Role:</span>

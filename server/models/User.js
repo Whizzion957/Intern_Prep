@@ -2,11 +2,10 @@ const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema(
     {
+        // Only set for users who joined via Channel-i (or were seeded);
+        // Google sign-in doesn't provide it. Unique index is defined below.
         enrollmentNumber: {
             type: String,
-            required: true,
-            unique: true,
-            index: true,
         },
         fullName: {
             type: String,
@@ -20,9 +19,18 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        // Login identity (Google account email)
         email: {
             type: String,
             required: true,
+            lowercase: true,
+            trim: true,
+            index: true,
+        },
+        // Department code from the email subdomain, e.g. 'cs'
+        department: {
+            type: String,
+            default: null,
         },
         role: {
             type: String,
@@ -40,9 +48,23 @@ const userSchema = new mongoose.Schema(
     }
 );
 
-// Check if user is superadmin based on enrollment number
+// Unique only among users that have an enrollment number
+userSchema.index(
+    { enrollmentNumber: 1 },
+    { unique: true, partialFilterExpression: { enrollmentNumber: { $type: 'string' } } }
+);
+
+// Check if user is superadmin based on enrollment number or email
+const superAdminEmails = (process.env.SUPER_ADMIN_EMAILS || '')
+    .split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+
 userSchema.pre('save', function () {
-    if (this.enrollmentNumber === process.env.SUPER_ADMIN_ENROLLMENT) {
+    if (
+        (this.enrollmentNumber && this.enrollmentNumber === process.env.SUPER_ADMIN_ENROLLMENT) ||
+        superAdminEmails.includes(this.email)
+    ) {
         this.role = 'superadmin';
     }
 });

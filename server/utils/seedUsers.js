@@ -163,7 +163,7 @@ const seedUsers = async () => {
         console.log(`  - Skipped: ${skipped} (already exist)`);
         console.log(`  - Total in list: ${cseStudents.length}`);
         console.log(`========================================`);
-        console.log(`\nNote: Profile pictures and accurate names will update when users login via Channel-i`);
+        console.log(`\nNote: Profile pictures and accurate names will update when users login with Google`);
 
         process.exit(0);
     } catch (error) {

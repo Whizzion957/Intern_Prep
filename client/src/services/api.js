@@ -20,17 +20,33 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
+        const isLoginRequest = error.config?.url === '/auth/google';
+
+        if (error.response?.status === 401 && !isLoginRequest) {
             localStorage.removeItem('token');
             window.location.href = '/login';
         }
+
+        // Account not allowed by the access rules (set in Admin Panel)
+        if (error.response?.status === 403 && error.response.data?.code === 'ACCESS_DENIED') {
+            localStorage.removeItem('token');
+            const params = new URLSearchParams({ reason: error.response.data.reason || '' });
+            if (error.response.data.department) {
+                params.set('branch', error.response.data.department);
+            }
+            if (error.response.data.year) {
+                params.set('year', error.response.data.year);
+            }
+            window.location.href = `/beta-restricted?${params}`;
+        }
+
         return Promise.reject(error);
     }
 );
 
 // Auth API
 export const authAPI = {
-    getLoginUrl: () => api.get('/auth/login'),
+    googleLogin: (credential) => api.post('/auth/google', { credential }),
     getMe: () => api.get('/auth/me'),
     logout: () => api.post('/auth/logout'),
 };
@@ -93,6 +109,8 @@ export const adminAPI = {
     updateUserRole: (id, role) => api.put(`/admin/users/${id}/role`, { role }),
     addQuestionForUser: (data) => api.post('/admin/questions', data),
     getStats: () => api.get('/admin/stats'),
+    getAccessRules: () => api.get('/admin/access'),
+    updateAccessRules: (data) => api.put('/admin/access', data),
 };
 
 // Activity Logs API

@@ -333,3 +333,53 @@
         display: none;
     }
 }
+/* Access Control tab */
+.access-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.access-departments {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0.5rem;
+}
+
+.access-department {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.access-department:hover {
+    background: var(--border-light);
+}
+
+.access-code {
+    margin-left: auto;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.access-add-code {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    max-width: 320px;
+}
+
+.form-card .form-actions {
+    margin-top: 1rem;
+}

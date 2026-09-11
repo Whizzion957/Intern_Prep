@@ -1,7 +1,13 @@
-const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const channeliConfig = require('../config/channeli');
+const { verifyGoogleIdToken } = require('../services/googleAuth');
+const {
+    PLACEHOLDER_EMAIL,
+    parseIitrEmail,
+    parseGoogleName,
+    departmentName,
+    checkAccess,
+} = require('../services/accessControl');
 const { logAuth } = require('../services/activityLogger');
 
 // Generate JWT Token
@@ -11,148 +17,105 @@ const generateToken = (id) => {
     });
 };
 
-// @desc    Redirect to Channel-i OAuth
-// @route   GET /api/auth/login
-// @access  Public
-const login = (req, res) => {
-    const authUrl = `${channeliConfig.authorizationURL}?client_id=${channeliConfig.clientId}&redirect_uri=${encodeURIComponent(channeliConfig.redirectUri)}&state=random_state`;
-    res.json({ authUrl });
-};
+const IITR_HOSTED_DOMAIN = /(^|\.)iitr\.ac\.in$/;
 
-// @desc    Handle Channel-i OAuth callback
-// @route   GET /api/auth/callback
+// @desc    Log in with a Google ID token from the "Sign in with Google" button
+// @route   POST /api/auth/google
 // @access  Public
-const callback = async (req, res) => {
+const googleLogin = async (req, res) => {
     try {
-        const { code } = req.query;
+        const { credential } = req.body;
 
-        if (!code) {
-            return res.redirect(`${process.env.CLIENT_URL}/login?error=no_code`);
+        if (!credential || typeof credential !== 'string') {
+            return res.status(400).json({ message: 'Missing Google credential' });
         }
 
-        // Exchange code for token
-        const tokenResponse = await axios.post(
-            channeliConfig.tokenURL,
-            new URLSearchParams({
-                client_id: channeliConfig.clientId,
-                client_secret: channeliConfig.clientSecret,
-                grant_type: 'authorization_code',
-                redirect_uri: channeliConfig.redirectUri,
-                code: code,
-            }),
-            {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-            }
-        );
-
-        const accessToken = tokenResponse.data.access_token;
-
-        // Get user data from Channel-i
-        const userDataResponse = await axios.get(channeliConfig.userDataURL, {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-            },
-        });
-
-        const userData = userDataResponse.data;
-
-        // Log the user data structure for debugging
-        console.log('Channel-i user data:', JSON.stringify(userData, null, 2));
-
-        // Extract enrollment number - Channel-i uses snake_case
-        // Based on scope: student.enrolment_number
-        const enrollmentNumber = userData.student?.enrolment_number ||
-            userData.student?.enrolmentNumber ||
-            userData.enrolmentNumber ||
-            userData.username;
-
-        // Check if we have required data
-        if (!enrollmentNumber) {
-            console.log('No enrollment number found in:', Object.keys(userData));
-            return res.redirect(`${process.env.CLIENT_URL}/login?error=not_student`);
+        let payload;
+        try {
+            payload = await verifyGoogleIdToken(credential);
+        } catch (error) {
+            console.error('Google token verification failed:', error.message);
+            return res.status(401).json({ message: 'Google sign-in failed. Please try again.' });
         }
 
-        // Based on actual Channel-i response structure:
-        // - person.fullName (camelCase)
-        // - person.displayPicture (relative path, needs base URL)
-        // - student.enrolmentNumber
-        // - student["branch department name"] (weird key with spaces!)
-        // - contactInformation.instituteWebmailAddress
-
-        const fullName = userData.person?.fullName ||
-            userData.person?.full_name ||
-            userData.fullName ||
-            userData.full_name ||
-            'Unknown User';
-
-        // Display picture is a relative path, prepend Channel-i base URL
-        let displayPicture = userData.person?.displayPicture ||
-            userData.person?.display_picture ||
-            null;
-        if (displayPicture && !displayPicture.startsWith('http')) {
-            displayPicture = `https://channeli.in${displayPicture}`;
-        }
-
-        // Branch has a weird key with spaces: "branch department name"
-        const branch = userData.student?.['branch department name'] ||
-            userData.student?.branch?.department?.name ||
-            userData.student?.branch?.name ||
-            userData.student?.branch ||
-            'Unknown';
-
-        const email = userData.contactInformation?.instituteWebmailAddress ||
-            userData.contactInformation?.institute_webmail_address ||
-            userData.contact_information?.instituteWebmailAddress ||
-            userData.contact_information?.institute_webmail_address ||
-            userData.email ||
-            '';
-
-        console.log('Extracted data:', { enrollmentNumber, fullName, branch, email });
-
-        // ============ BETA TESTING RESTRICTIONS (TEMPORARY) ============
-        // Only enrollment years 23 and 24 are allowed
-        const enrollmentYear = parseInt(enrollmentNumber.toString().substring(0, 2));
-        if (enrollmentYear > 24 || enrollmentYear < 23) {
-            console.log('Beta restriction: Batch not 23/24, blocked:', enrollmentYear);
-            return res.redirect(`${process.env.CLIENT_URL}/beta-restricted?reason=batch&year=${enrollmentYear}`);
-        }
-        // ============ END BETA RESTRICTIONS ============
-
-
-        // Find or create user
-        let user = await User.findOne({ enrollmentNumber: enrollmentNumber });
-
-        if (user) {
-            // Update user data
-            user.fullName = fullName;
-            user.displayPicture = displayPicture;
-            user.branch = branch;
-            user.email = email;
-            await user.save();
-        } else {
-            // Create new user
-            user = await User.create({
-                enrollmentNumber: enrollmentNumber,
-                fullName: fullName,
-                displayPicture: displayPicture,
-                branch: branch,
-                email: email,
+        // Must be a verified account managed by IITR's Google Workspace
+        const parsed = parseIitrEmail(payload.email);
+        if (!payload.email_verified || !parsed || !IITR_HOSTED_DOMAIN.test(payload.hd || '')) {
+            await logAuth({ fullName: payload.email }, 'LOGIN', req, false);
+            return res.status(403).json({
+                code: 'ACCESS_DENIED',
+                reason: 'not_iitr',
+                message: 'Please sign in with your IIT Roorkee email (@iitr.ac.in).',
             });
         }
 
-        // Generate JWT
+        // IITR Google names end with the enrollment number: "NAME SURNAME 23114001"
+        const googleName = parseGoogleName(payload.name);
+
+        // Oldest account wins if an email is shared (see scripts/migrateToGoogleAuth.js)
+        let user = await User.findOne({ email: parsed.email }).sort({ createdAt: 1 });
+
+        // Take the enrollment number from the Google name unless another account owns it
+        let enrollmentNumber = user?.enrollmentNumber || null;
+        if (!enrollmentNumber && googleName.enrollmentNumber) {
+            const owner = await User.findOne({ enrollmentNumber: googleName.enrollmentNumber });
+            if (!owner) {
+                enrollmentNumber = googleName.enrollmentNumber;
+            } else if (!user && PLACEHOLDER_EMAIL.test(owner.email || '')) {
+                // Seeded placeholder for this student: claim it (keeps content credited to it)
+                user = owner;
+                enrollmentNumber = owner.enrollmentNumber;
+            } else {
+                console.warn(`Enrollment ${googleName.enrollmentNumber} in Google name of ${parsed.email} already belongs to ${owner.email}`);
+            }
+        }
+
+        const access = await checkAccess({ email: parsed.email, enrollmentNumber }, user?.role);
+        if (!access.allowed) {
+            await logAuth({ fullName: payload.name || parsed.email }, 'LOGIN', req, false);
+            return res.status(403).json({
+                code: 'ACCESS_DENIED',
+                reason: access.reason,
+                department: access.department,
+                year: access.year,
+                message: 'Your account is not allowed to access this platform yet.',
+            });
+        }
+
+        const branch = departmentName(parsed.department);
+
+        if (user) {
+            // Keep existing names (verified via Channel-i); refresh the rest
+            user.email = parsed.email;
+            user.fullName = user.fullName || googleName.fullName || parsed.email;
+            user.displayPicture = payload.picture || user.displayPicture;
+            user.department = parsed.department;
+            if (enrollmentNumber) {
+                user.enrollmentNumber = enrollmentNumber;
+            }
+            if (!user.branch || user.branch === 'Unknown') {
+                user.branch = branch;
+            }
+            await user.save();
+        } else {
+            user = await User.create({
+                email: parsed.email,
+                fullName: googleName.fullName || parsed.email,
+                displayPicture: payload.picture || null,
+                department: parsed.department,
+                branch,
+                ...(enrollmentNumber && { enrollmentNumber }),
+            });
+        }
+
         const token = generateToken(user._id);
 
-        // Log successful login
         await logAuth(user, 'LOGIN', req);
 
-        // Redirect to frontend with token
-        res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${token}`);
+        res.json({ token, user });
     } catch (error) {
-        console.error('OAuth callback error:', error.response?.data || error.message);
-        res.redirect(`${process.env.CLIENT_URL}/login?error=auth_failed`);
+        console.error('Google login error:', error);
+        res.status(500).json({ message: 'Login failed. Please try again.' });
     }
 };
 
@@ -185,4 +148,4 @@ const logout = async (req, res) => {
     res.json({ message: 'Logged out successfully' });
 };
 
-module.exports = { login, callback, getMe, logout };
+module.exports = { googleLogin, getMe, logout };

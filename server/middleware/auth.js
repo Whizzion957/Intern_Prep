@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { checkAccess } = require('../services/accessControl');
 
 // Verify JWT token
 const protect = async (req, res, next) => {
@@ -25,6 +26,18 @@ const protect = async (req, res, next) => {
 
         if (!req.user) {
             return res.status(401).json({ message: 'User not found' });
+        }
+
+        // Re-check access rules so admin changes apply to existing sessions too
+        const access = await checkAccess(req.user, req.user.role);
+        if (!access.allowed) {
+            return res.status(403).json({
+                code: 'ACCESS_DENIED',
+                reason: access.reason,
+                department: access.department,
+                year: access.year,
+                message: 'Your account is not allowed to access this platform.',
+            });
         }
 
         next();

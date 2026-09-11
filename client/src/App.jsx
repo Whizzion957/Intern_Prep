@@ -4,7 +4,6 @@ import { AuthProvider, ThemeProvider, useAuth } from './context';
 import { Navbar } from './components';
 import {
   LoginPage,
-  AuthCallback,
   Dashboard,
   AddQuestion,
   ViewQuestions,
@@ -109,7 +108,6 @@ function AppContent() {
             </PublicRoute>
           }
         />
-        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/beta-restricted" element={<BetaRestricted />} />
 
         {/* Protected routes */}

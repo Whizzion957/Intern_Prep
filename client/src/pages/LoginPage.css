@@ -170,28 +170,15 @@
     color: var(--text-muted);
 }
 
-.btn-channeli {
-    width: 100%;
-    padding: 1rem;
-    font-size: 1rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-    color: white;
-    border: none;
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: all var(--transition);
+.login-google {
     margin-bottom: 1rem;
 }
 
-.btn-channeli:hover {
-    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(26, 35, 126, 0.3);
+.google-signin-button {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    justify-content: center;
 }
 
 .login-note {

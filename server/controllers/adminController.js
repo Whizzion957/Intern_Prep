@@ -1,7 +1,15 @@
 const User = require('../models/User');
 const Question = require('../models/Question');
 const { Company } = require('../models/Company');
+const AccessSettings = require('../models/AccessSettings');
 const { logAdmin, logQuestion } = require('../services/activityLogger');
+const {
+    DEPARTMENTS,
+    departmentName,
+    joiningYear,
+    getAccessSettings,
+    invalidateAccessSettings,
+} = require('../services/accessControl');
 
 // @desc    Get all users
 // @route   GET /api/admin/users
@@ -184,4 +192,129 @@ const getStats = async (req, res) => {
     }
 };
 
-module.exports = { getUsers, updateUserRole, addQuestionForUser, getStats };
+// @desc    Get login access rules
+// @route   GET /api/admin/access
+// @access  Private (Superadmin only)
+const getAccessRules = async (req, res) => {
+    try {
+        const settings = await getAccessSettings();
+
+        // Departments seen among existing users, so unlisted codes show up too
+        const userCounts = await User.aggregate([
+            { $match: { department: { $type: 'string' } } },
+            { $group: { _id: '$department', count: { $sum: 1 } } },
+        ]);
+        const counts = Object.fromEntries(userCounts.map((d) => [d._id, d.count]));
+
+        const codes = new Set([
+            ...Object.keys(DEPARTMENTS),
+            ...Object.keys(counts),
+            ...(settings.allowedDepartments || []),
+        ]);
+        const departments = [...codes]
+            .map((code) => ({ code, name: departmentName(code), users: counts[code] || 0 }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+        // Batches (joining years) among users, plus the last few years
+        const yearCounts = {};
+        const enrollments = await User.find(
+            { enrollmentNumber: { $type: 'string' } },
+            { enrollmentNumber: 1, _id: 0 }
+        ).lean();
+        for (const { enrollmentNumber } of enrollments) {
+            const year = joiningYear(enrollmentNumber);
+            if (year) yearCounts[year] = (yearCounts[year] || 0) + 1;
+        }
+        const currentYear = new Date().getFullYear();
+        const yearSet = new Set([
+            ...Object.keys(yearCounts).map(Number),
+            ...Array.from({ length: 6 }, (_, i) => currentYear - i),
+            ...(settings.allowedYears || []),
+        ]);
+        const years = [...yearSet]
+            .sort((a, b) => b - a)
+            .map((year) => ({ year, users: yearCounts[year] || 0 }));
+
+        res.json({
+            restrictDepartments: settings.restrictDepartments,
+            allowedDepartments: settings.allowedDepartments || [],
+            restrictYears: settings.restrictYears || false,
+            allowedYears: settings.allowedYears || [],
+            years,
+            allowedEmails: settings.allowedEmails || [],
+            blockedEmails: settings.blockedEmails || [],
+            updatedAt: settings.updatedAt,
+            departments,
+        });
+    } catch (error) {
+        console.error('Get access rules error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Update login access rules
+// @route   PUT /api/admin/access
+// @access  Private (Superadmin only)
+const updateAccessRules = async (req, res) => {
+    try {
+        const {
+            restrictDepartments,
+            allowedDepartments,
+            restrictYears,
+            allowedYears,
+            allowedEmails,
+            blockedEmails,
+        } = req.body;
+
+        const cleanList = (list, pattern) =>
+            [...new Set((Array.isArray(list) ? list : [])
+                .map((item) => String(item).trim().toLowerCase())
+                .filter((item) => pattern.test(item)))];
+
+        const departmentCodes = cleanList(allowedDepartments, /^[a-z0-9-]{1,20}$/);
+        const allowEmails = cleanList(allowedEmails, /^[^@\s]+@[^@\s]+$/);
+        const blockEmails = cleanList(blockedEmails, /^[^@\s]+@[^@\s]+$/);
+
+        const years = [...new Set((Array.isArray(allowedYears) ? allowedYears : [])
+            .map((year) => parseInt(year))
+            .filter((year) => year >= 2000 && year <= 2099))];
+
+        if (restrictDepartments && departmentCodes.length === 0) {
+            return res.status(400).json({ message: 'Select at least one department, or turn off the restriction.' });
+        }
+        if (restrictYears && years.length === 0) {
+            return res.status(400).json({ message: 'Select at least one batch, or turn off the restriction.' });
+        }
+
+        const settings = await AccessSettings.findOneAndUpdate(
+            { key: 'global' },
+            {
+                restrictDepartments: Boolean(restrictDepartments),
+                allowedDepartments: departmentCodes,
+                restrictYears: Boolean(restrictYears),
+                allowedYears: years,
+                allowedEmails: allowEmails,
+                blockedEmails: blockEmails,
+                updatedBy: req.user._id,
+            },
+            { upsert: true, new: true }
+        );
+        invalidateAccessSettings();
+
+        await logAdmin(req.user, 'ACCESS_RULES_UPDATE', null, 'system', req, {
+            restrictDepartments: settings.restrictDepartments,
+            allowedDepartments: settings.allowedDepartments,
+            restrictYears: settings.restrictYears,
+            allowedYears: settings.allowedYears,
+            allowedEmails: settings.allowedEmails.length,
+            blockedEmails: settings.blockedEmails.length,
+        });
+
+        res.json({ message: 'Access rules updated' });
+    } catch (error) {
+        console.error('Update access rules error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+module.exports = { getUsers, updateUserRole, addQuestionForUser, getStats, getAccessRules, updateAccessRules };

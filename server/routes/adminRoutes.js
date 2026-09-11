@@ -5,6 +5,8 @@ const {
     updateUserRole,
     addQuestionForUser,
     getStats,
+    getAccessRules,
+    updateAccessRules,
 } = require('../controllers/adminController');
 const { protect, superadmin, admin } = require('../middleware/auth');
 
@@ -13,5 +15,7 @@ router.get('/users', protect, superadmin, getUsers);
 router.put('/users/:id/role', protect, superadmin, updateUserRole);
 router.post('/questions', protect, superadmin, addQuestionForUser);
 router.get('/stats', protect, admin, getStats);
+router.get('/access', protect, superadmin, getAccessRules);
+router.put('/access', protect, superadmin, updateAccessRules);
 
 module.exports = router;

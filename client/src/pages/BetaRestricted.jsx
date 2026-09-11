@@ -10,37 +10,56 @@ const BetaRestricted = () => {
     return (
         <div className="beta-restricted-page">
             <div className="beta-card">
-                <div className="beta-icon">🚀</div>
+                <div className="beta-icon">{reason === 'department' || reason === 'year' ? '🚀' : '🔒'}</div>
 
-                {reason === 'batch' ? (
+                {reason === 'department' ? (
+                    <>
+                        <h1>Access Limited</h1>
+                        <p className="beta-message">
+                            Thank you for your interest in <strong>Intern At IITR</strong>!
+                        </p>
+                        <p className="beta-details">
+                            Access is currently open to selected departments only.
+                            {branch && <> Support for <strong>{branch}</strong> is coming soon!</>}
+                        </p>
+                        <div className="info-box">
+                            <span className="info-icon">ℹ️</span>
+                            <span>We're expanding to more departments soon.</span>
+                        </div>
+                    </>
+                ) : reason === 'year' ? (
                     <>
                         <h1>Launching Soon!</h1>
                         <p className="beta-message">
                             Thank you for your interest in <strong>Intern At IITR</strong>!
                         </p>
                         <p className="beta-details">
-                            We're currently in beta testing with batches 2023 and earlier.
-                            Access for batch 20{year} will be available soon!
+                            Access is currently open to selected batches only.
+                            {year && <> Access for the <strong>{year}</strong> batch will be available soon!</>}
                         </p>
                         <div className="info-box">
                             <span className="info-icon">ℹ️</span>
-                            <span>Stay tuned - we'll be opening up to all batches shortly!</span>
+                            <span>Stay tuned - we'll be opening up to more batches shortly!</span>
                         </div>
                     </>
-                ) : reason === 'department' ? (
+                ) : reason === 'not_iitr' ? (
                     <>
-                        <h1>Beta Access Limited</h1>
+                        <h1>IITR Account Required</h1>
                         <p className="beta-message">
-                            Thank you for your interest in <strong>Intern At IITR</strong>!
+                            <strong>Intern At IITR</strong> is only for IIT Roorkee students.
                         </p>
                         <p className="beta-details">
-                            We're currently in beta testing with the Computer Science & Engineering department.
-                            Support for <strong>{branch}</strong> is coming soon!
+                            Please sign in with your institute Google account (e.g. name@cs.iitr.ac.in),
+                            not a personal Gmail account.
                         </p>
-                        <div className="info-box">
-                            <span className="info-icon">ℹ️</span>
-                            <span>We're expanding to more departments after the beta phase.</span>
-                        </div>
+                    </>
+                ) : reason === 'blocked' ? (
+                    <>
+                        <h1>Access Revoked</h1>
+                        <p className="beta-details">
+                            Your account doesn't have access to this platform.
+                            Contact the platform admins if you think this is a mistake.
+                        </p>
                     </>
                 ) : (
                     <>
@@ -54,8 +73,8 @@ const BetaRestricted = () => {
                     </>
                 )}
 
-                <Link to="/" className="btn btn-primary">
-                    Back to Home
+                <Link to="/login" className="btn btn-primary">
+                    Back to Login
                 </Link>
             </div>
         </div>

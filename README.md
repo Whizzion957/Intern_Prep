@@ -4,7 +4,8 @@ A collaborative platform for IIT Roorkee students to share and learn from interv
 
 ## Features
 
-- **Channel-i OAuth Authentication** - Login with your IIT Roorkee credentials
+- **Google Sign-In** - Login with your IIT Roorkee Google account (@iitr.ac.in only)
+- **Access Control** - Superadmins choose which departments can log in, plus per-email allow/block lists
 - **Add Questions** - Share interview/OA questions with company, result, and suggestions
 - **Search & Filter** - Search by company, branch, name, question text, and more
 - **Sort Options** - Sort by year, company, student name, date added
@@ -17,7 +18,7 @@ A collaborative platform for IIT Roorkee students to share and learn from interv
 - **Frontend**: React 19 + Vite
 - **Backend**: Express.js 5
 - **Database**: MongoDB
-- **Authentication**: Channel-i OAuth 2.0
+- **Authentication**: Google Sign-In (ID token verified on the server)
 - **File Storage**: Cloudinary
 - **Styling**: Vanilla CSS with CSS Variables
 
@@ -27,7 +28,7 @@ A collaborative platform for IIT Roorkee students to share and learn from interv
 
 - Node.js 20+
 - MongoDB (local or Atlas)
-- Channel-i OAuth credentials
+- Google OAuth client ID (see [Google Sign-In setup](#google-sign-in-setup))
 - Cloudinary account
 
 ### Installation
@@ -58,19 +59,18 @@ NODE_ENV=development
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/Intern-App
 JWT_SECRET=your-super-secret-jwt-key
 JWT_EXPIRES_IN=7d
-CHANNELI_CLIENT_ID=your-channeli-client-id
-CHANNELI_CLIENT_SECRET=your-channeli-client-secret
-CHANNELI_REDIRECT_URI=http://localhost:5000/api/auth/callback
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 CLOUDINARY_CLOUD_NAME=your-cloud-name
 CLOUDINARY_API_KEY=your-api-key
 CLOUDINARY_API_SECRET=your-api-secret
 CLIENT_URL=http://localhost:5173
-SUPER_ADMIN_ENROLLMENT=23114001
+SUPER_ADMIN_EMAILS=name_x@cs.iitr.ac.in
 ```
 
 **Client (.env)**
 ```env
 VITE_API_URL=http://localhost:5000/api
+VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 ```
 
 4. Seed the database with companies:
@@ -88,6 +88,35 @@ npm run dev
 npm run dev
 ```
 
+## Google Sign-In Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create a project
+   (add other maintainers under **IAM & Admin → IAM** so the setup isn't tied to one person).
+2. **APIs & Services → OAuth consent screen**: choose **External**, fill in the app name and
+   support email, keep only the default scopes (`openid`, `email`, `profile`), then
+   **Publish app** (moves it from Testing to In production; no Google review is needed for
+   these scopes).
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID**:
+   - Application type: **Web application**
+   - Authorized JavaScript origins: `https://intern-at-iitr.vercel.app`, `http://localhost:5173`, `http://localhost`
+   - No redirect URIs needed
+4. Put the client ID in `GOOGLE_CLIENT_ID` (server) and `VITE_GOOGLE_CLIENT_ID` (client).
+
+Only verified Google accounts on `iitr.ac.in` or a department subdomain
+(e.g. `name@cs.iitr.ac.in`) can log in. The department is read from that subdomain.
+Superadmins manage access rules in **Admin Panel → Access Control**.
+
+### Migrating from Channel-i
+
+Run once against the production database before deploying:
+
+```bash
+cd server
+node scripts/migrateToGoogleAuth.js
+```
+
+Existing users are matched by their institute email, so their roles and contributions carry over.
+
 ## Project Structure
 
 ```
@@ -100,7 +129,7 @@ npm run dev
 │   │   └── styles/            # Global CSS
 │   └── ...
 ├── server/                    # Express Backend
-│   ├── config/                # DB, Cloudinary, Channel-i config
+│   ├── config/                # DB, Cloudinary, Redis config
 │   ├── controllers/           # Route handlers
 │   ├── middleware/            # Auth middleware
 │   ├── models/                # MongoDB schemas
@@ -112,8 +141,7 @@ npm run dev
 ## API Endpoints
 
 ### Auth
-- `GET /api/auth/login` - Get Channel-i auth URL
-- `GET /api/auth/callback` - OAuth callback
+- `POST /api/auth/google` - Log in with a Google ID token
 - `GET /api/auth/me` - Get current user
 - `POST /api/auth/logout` - Logout
 
