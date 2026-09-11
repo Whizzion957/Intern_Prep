@@ -60,6 +60,25 @@ const Contributions = () => {
                                 </div>
                             </div>
                         </div>
+
+                        <div className="developer-card ai claude">
+                            <div className="developer-avatar claude-avatar">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                                    <path d="M12 3v18" />
+                                    <path d="M3 12h18" />
+                                    <path d="M5.6 5.6l12.8 12.8" />
+                                    <path d="M18.4 5.6L5.6 18.4" />
+                                </svg>
+                            </div>
+                            <div className="developer-info">
+                                <h3>Claude</h3>
+                                <span className="role">AI Pair Programmer</span>
+                                <p>Anthropic • Claude Opus 5</p>
+                                <div className="ai-badge">
+                                    <span>✨ Built with Claude Code</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 

@@ -87,6 +87,11 @@
     background: linear-gradient(135deg, rgba(168, 85, 247, 0.05), rgba(168, 85, 247, 0.02));
 }
 
+.developer-card.claude {
+    border-color: #d97757;
+    background: linear-gradient(135deg, rgba(217, 119, 87, 0.06), rgba(217, 119, 87, 0.02));
+}
+
 .developer-avatar {
     width: 64px;
     height: 64px;
@@ -109,6 +114,10 @@
     stroke: white;
 }
 
+.claude-avatar {
+    background: linear-gradient(135deg, #d97757, #b4552f);
+}
+
 .developer-info h3 {
     font-size: 1.25rem;
     font-weight: 600;
@@ -128,6 +137,10 @@
 
 .developer-card.ai .role {
     color: #a855f7;
+}
+
+.developer-card.claude .role {
+    color: #d97757;
 }
 
 .developer-info p {
@@ -158,6 +171,15 @@
     font-size: 0.75rem;
     color: #a855f7;
     font-weight: 500;
+}
+
+.developer-card.claude .ai-badge {
+    background: linear-gradient(135deg, rgba(217, 119, 87, 0.16), rgba(180, 85, 47, 0.16));
+    color: #b4552f;
+}
+
+[data-theme="dark"] .developer-card.claude .ai-badge {
+    color: #e79170;
 }
 
 /* Contributors CTA */
