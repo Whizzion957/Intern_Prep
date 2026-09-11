@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context';
 import { CompanySearch, AccessControlPanel } from '../components';
@@ -24,6 +24,8 @@ const reviewNote = (user) => {
     return null;
 };
 
+const USERS_PER_PAGE = 25;
+
 const AdminPanel = () => {
     const { user, isSuperAdmin } = useAuth();
     const navigate = useNavigate();
@@ -34,6 +36,11 @@ const AdminPanel = () => {
     const [searchUser, setSearchUser] = useState('');
     const [searchLoading, setSearchLoading] = useState(false);
     const [reviewOnly, setReviewOnly] = useState(false);
+    const [reviewCount, setReviewCount] = useState(0);
+    const [hasMore, setHasMore] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const pageRef = useRef(1);
+    const sentinelRef = useRef(null);
     const [editingUser, setEditingUser] = useState(null);
     const [enrollmentDraft, setEnrollmentDraft] = useState('');
     const [savingEnrollment, setSavingEnrollment] = useState(false);
@@ -63,11 +70,7 @@ const AdminPanel = () => {
 
     const loadInitialData = async () => {
         try {
-            const [usersRes, statsRes] = await Promise.all([
-                adminAPI.getUsers({ limit: 1000 }), // Load all users
-                adminAPI.getStats(),
-            ]);
-            setUsers(usersRes.data.users);
+            const statsRes = await adminAPI.getStats();
             setStats(statsRes.data);
         } catch (error) {
             console.error('Failed to load admin data:', error);
@@ -76,43 +79,47 @@ const AdminPanel = () => {
         }
     };
 
-    // Server-side search with debounce
-    const searchUsers = useCallback(async (searchTerm) => {
-        if (!searchTerm.trim()) {
-            // If search is empty, reload all users
-            setSearchLoading(true);
-            try {
-                const res = await adminAPI.getUsers({ limit: 1000 });
-                setUsers(res.data.users);
-            } catch (error) {
-                console.error('Failed to load users:', error);
-            } finally {
-                setSearchLoading(false);
-            }
-            return;
-        }
-
-        setSearchLoading(true);
+    // One page of users at a time; page 1 replaces the list, later pages append
+    const loadUsers = useCallback(async (page, { append = false } = {}) => {
+        append ? setLoadingMore(true) : setSearchLoading(true);
         try {
-            const res = await adminAPI.getUsers({ search: searchTerm, limit: 1000 });
-            setUsers(res.data.users);
+            const { data } = await adminAPI.getUsers({
+                page,
+                limit: USERS_PER_PAGE,
+                ...(searchUser.trim() && { search: searchUser.trim() }),
+                ...(reviewOnly && { needsReview: true }),
+            });
+            pageRef.current = page;
+            setUsers((current) => (append ? [...current, ...data.users] : data.users));
+            setHasMore(data.pagination.hasMore);
+            setReviewCount(data.reviewCount);
         } catch (error) {
-            console.error('Failed to search users:', error);
+            console.error('Failed to load users:', error);
         } finally {
-            setSearchLoading(false);
+            append ? setLoadingMore(false) : setSearchLoading(false);
         }
-    }, []);
+    }, [searchUser, reviewOnly]);
 
-    // Debounce search
+    // Reload from page 1 when the search text or the review filter changes
     useEffect(() => {
-        const timer = setTimeout(() => {
-            if (searchUser !== undefined) {
-                searchUsers(searchUser);
-            }
-        }, 300);
-
+        const timer = setTimeout(() => loadUsers(1), 300);
         return () => clearTimeout(timer);
-    }, [searchUser, searchUsers]);
+    }, [loadUsers]);
+
+    // Load the next page when the bottom of the table comes into view
+    useEffect(() => {
+        const sentinel = sentinelRef.current;
+        if (!sentinel || !hasMore || activeTab !== 'users') return;
+
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !loadingMore && !searchLoading) {
+                loadUsers(pageRef.current + 1, { append: true });
+            }
+        }, { rootMargin: '200px' });
+
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, [hasMore, loadingMore, searchLoading, activeTab, loadUsers]);
 
     const handleRoleChange = async (userId, newRole) => {
         try {
@@ -179,9 +186,8 @@ const AdminPanel = () => {
         }
     };
 
-    // Display users directly (already filtered server-side)
-    const reviewCount = users.filter((u) => reviewNote(u)).length;
-    const displayedUsers = reviewOnly ? users.filter((u) => reviewNote(u)) : users;
+    // Already filtered, searched and paginated server-side
+    const displayedUsers = users;
 
     const months = [
         'January', 'February', 'March', 'April', 'May', 'June',
@@ -419,6 +425,21 @@ const AdminPanel = () => {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+
+                    <div ref={sentinelRef} className="users-more">
+                        {(searchLoading || loadingMore) && <div className="spinner"></div>}
+                        {!searchLoading && !loadingMore && hasMore && (
+                            <button className="btn btn-outline btn-sm" onClick={() => loadUsers(pageRef.current + 1, { append: true })}>
+                                Load more
+                            </button>
+                        )}
+                        {!searchLoading && !hasMore && users.length > 0 && (
+                            <span className="users-count">{users.length} shown</span>
+                        )}
+                        {!searchLoading && users.length === 0 && (
+                            <span className="users-count">No users match this filter.</span>
+                        )}
                     </div>
                 </div>
             )}

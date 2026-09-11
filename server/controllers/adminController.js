@@ -7,6 +7,7 @@ const {
     DEPARTMENTS,
     departmentName,
     joiningYear,
+    parseGoogleName,
     getAccessSettings,
     invalidateAccessSettings,
 } = require('../services/accessControl');
@@ -14,11 +15,29 @@ const {
 // @desc    Get all users
 // @route   GET /api/admin/users
 // @access  Private (Superadmin only)
+// Users an admin should check: no enrollment number, or a Google display name whose
+// trailing number disagrees with it (the user may have edited their Google name).
+const findUsersNeedingReview = async () => {
+    const users = await User.find({}, { enrollmentNumber: 1, googleName: 1 }).lean();
+    return users
+        .filter((user) => {
+            const fromName = parseGoogleName(user.googleName).enrollmentNumber;
+            if (!user.enrollmentNumber) return true;
+            return Boolean(fromName) && fromName !== user.enrollmentNumber;
+        })
+        .map((user) => user._id);
+};
+
 const getUsers = async (req, res) => {
     try {
-        const { search, role, page = 1, limit = 20 } = req.query;
+        const { search, role, page = 1, limit = 20, needsReview } = req.query;
 
         let query = {};
+
+        const reviewIds = await findUsersNeedingReview();
+        if (needsReview === 'true') {
+            query._id = { $in: reviewIds };
+        }
 
         if (search) {
             query.$or = [
@@ -42,11 +61,13 @@ const getUsers = async (req, res) => {
 
         res.json({
             users,
+            reviewCount: reviewIds.length,
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),
                 total,
                 pages: Math.ceil(total / parseInt(limit)),
+                hasMore: parseInt(page) * parseInt(limit) < total,
             },
         });
     } catch (error) {
