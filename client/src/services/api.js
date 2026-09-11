@@ -44,6 +44,11 @@ api.interceptors.response.use(
     }
 );
 
+// Public API (no auth)
+export const publicAPI = {
+    getStats: () => api.get('/public/stats'),
+};
+
 // Auth API
 export const authAPI = {
     googleLogin: (credential) => api.post('/auth/google', { credential }),

@@ -1,94 +1,83 @@
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context';
 import { GoogleSignInButton } from '../components';
+import { publicAPI } from '../services/api';
 import './LoginPage.css';
+
+const INSIDE = ['Online assessments', 'Interview rounds', 'Senior tips'];
 
 const LoginPage = () => {
     const { loginWithGoogle, error } = useAuth();
+    const [stats, setStats] = useState(null);
+
+    // Real totals, so the page says what's actually inside (counts need no login)
+    useEffect(() => {
+        publicAPI.getStats().then(({ data }) => setStats(data)).catch(() => { });
+    }, []);
 
     return (
         <div className="login-page">
-            <div className="login-container">
-                <div className="login-graphic">
-                    <div className="graphic-circle circle-1"></div>
-                    <div className="graphic-circle circle-2"></div>
-                    <div className="graphic-circle circle-3"></div>
-                </div>
+            <div className="login-backdrop" aria-hidden="true" />
 
-                <div className="login-card">
-                    <div className="login-header">
-                        <div className="login-logo">
-                            <span className="logo-icon">IQ</span>
+            <main className="login-layout">
+                <section className="login-intro">
+                    <div className="login-brand">
+                        <span className="brand-mark">IQ</span>
+                        <span className="brand-name">Intern at IITR</span>
+                        <span className="brand-sep">/</span>
+                        <span className="brand-by">by students, for students</span>
+                    </div>
+
+                    <h1>
+                        The interview questions your seniors <em>wish they'd had</em>.
+                    </h1>
+
+                    <p className="login-lede">
+                        OAs, interview rounds and the follow-ups nobody warns you about, written
+                        down by IIT Roorkee students right after they walked out, with what they'd
+                        revise next time.
+                    </p>
+
+                    <ul className="login-chips">
+                        {INSIDE.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+
+                    <dl className="login-stats">
+                        <div>
+                            <dd>{stats ? stats.questions : '-'}</dd>
+                            <dt>Questions</dt>
                         </div>
-                        <h1>Interview Questions</h1>
-                        <p className="login-subtitle">
-                            A collaborative platform for IIT Roorkee students to share and learn from interview experiences
+                        <div>
+                            <dd>{stats ? stats.companies : '-'}</dd>
+                            <dt>Companies</dt>
+                        </div>
+                        <div>
+                            <dd>{stats ? stats.students : '-'}</dd>
+                            <dt>Students</dt>
+                        </div>
+                    </dl>
+                </section>
+
+                <section className="login-panel">
+                    <div className="login-card">
+                        <h2>Sign in to continue</h2>
+                        <p className="card-sub">Your institute Google account. No new password to remember.</p>
+
+                        {error && <div className="alert alert-error">{error}</div>}
+
+                        <GoogleSignInButton onCredential={loginWithGoogle} />
+
+                        <p className="login-note">
+                            Only <strong>@iitr.ac.in</strong> accounts can sign in. We read just
+                            your name, photo and email, nothing else.
                         </p>
                     </div>
 
-                    <div className="login-features">
-                        <div className="feature">
-                            <div className="feature-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                    <polyline points="14 2 14 8 20 8" />
-                                    <line x1="16" y1="13" x2="8" y2="13" />
-                                    <line x1="16" y1="17" x2="8" y2="17" />
-                                </svg>
-                            </div>
-                            <div className="feature-text">
-                                <h4>Share Questions</h4>
-                                <p>Add interview & OA questions you've faced</p>
-                            </div>
-                        </div>
-
-                        <div className="feature">
-                            <div className="feature-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="11" cy="11" r="8" />
-                                    <path d="m21 21-4.35-4.35" />
-                                </svg>
-                            </div>
-                            <div className="feature-text">
-                                <h4>Search & Filter</h4>
-                                <p>Find questions by company, branch, or topic</p>
-                            </div>
-                        </div>
-
-                        <div className="feature">
-                            <div className="feature-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                    <circle cx="9" cy="7" r="4" />
-                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                                </svg>
-                            </div>
-                            <div className="feature-text">
-                                <h4>Community Driven</h4>
-                                <p>Learn from your seniors and peers</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {error && (
-                        <div className="alert alert-error">
-                            {error}
-                        </div>
-                    )}
-
-                    <div className="login-google">
-                        <GoogleSignInButton onCredential={loginWithGoogle} />
-                    </div>
-
-                    <p className="login-note">
-                        Sign in with your IIT Roorkee email (@iitr.ac.in)
+                    <p className="login-help">
+                        Personal Gmail accounts won't work.
                     </p>
-                </div>
-
-                <footer className="login-footer">
-                    <p>Made with ❤️ for IITR students</p>
-                </footer>
-            </div>
+                </section>
+            </main>
         </div>
     );
 };

@@ -1,208 +1,319 @@
 .login-page {
+    position: relative;
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--primary-light) 100%);
-    padding: 2rem;
-    position: relative;
+    padding: 3rem 1.5rem;
+    background: var(--background);
     overflow: hidden;
 }
 
-.login-container {
-    width: 100%;
-    max-width: 28rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    z-index: 1;
-}
-
-.login-graphic {
+/* Faint dot grid + one warm corner glow, so the page has texture without noise */
+.login-backdrop {
     position: absolute;
     inset: 0;
-    overflow: hidden;
     pointer-events: none;
+    background-image:
+        radial-gradient(circle at 88% 8%, rgba(255, 87, 34, 0.10), transparent 42%),
+        radial-gradient(circle at 4% 92%, rgba(26, 35, 126, 0.10), transparent 45%),
+        radial-gradient(currentColor 1px, transparent 1px);
+    background-size: auto, auto, 22px 22px;
+    color: rgba(15, 23, 42, 0.06);
 }
 
-.graphic-circle {
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.05);
+[data-theme="dark"] .login-backdrop {
+    color: rgba(255, 255, 255, 0.05);
+    background-image:
+        radial-gradient(circle at 88% 8%, rgba(255, 112, 67, 0.12), transparent 42%),
+        radial-gradient(circle at 4% 92%, rgba(124, 138, 255, 0.12), transparent 45%),
+        radial-gradient(currentColor 1px, transparent 1px);
 }
 
-.circle-1 {
-    width: 40rem;
-    height: 40rem;
-    top: -20rem;
-    right: -10rem;
-    animation: float 20s ease-in-out infinite;
-}
-
-.circle-2 {
-    width: 30rem;
-    height: 30rem;
-    bottom: -15rem;
-    left: -10rem;
-    animation: float 25s ease-in-out infinite reverse;
-}
-
-.circle-3 {
-    width: 20rem;
-    height: 20rem;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    animation: pulse 10s ease-in-out infinite;
-}
-
-@keyframes float {
-
-    0%,
-    100% {
-        transform: translate(0, 0);
-    }
-
-    50% {
-        transform: translate(30px, 30px);
-    }
-}
-
-@keyframes pulse {
-
-    0%,
-    100% {
-        transform: translate(-50%, -50%) scale(1);
-        opacity: 0.05;
-    }
-
-    50% {
-        transform: translate(-50%, -50%) scale(1.1);
-        opacity: 0.1;
-    }
-}
-
-.login-card {
+.login-layout {
+    position: relative;
     width: 100%;
-    background: var(--surface);
-    border-radius: var(--radius-xl);
-    padding: 2.5rem;
-    box-shadow: var(--shadow-xl);
+    max-width: 64rem;
+    display: grid;
+    /* Left column takes the slack; the card keeps its natural width */
+    grid-template-columns: minmax(0, 1fr) 23.5rem;
+    gap: 4rem;
+    align-items: center;
 }
 
-.login-header {
-    text-align: center;
-    margin-bottom: 2rem;
-}
+/* ---------- Left: what this place is ---------- */
 
-.login-logo {
-    width: 4rem;
-    height: 4rem;
-    margin: 0 auto 1.25rem;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    border-radius: var(--radius-lg);
+.login-brand {
     display: flex;
     align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 24px rgba(26, 35, 126, 0.3);
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    font-size: 0.875rem;
 }
 
-.login-logo .logo-icon {
-    font-size: 1.5rem;
+.brand-mark {
+    display: grid;
+    place-items: center;
+    width: 1.875rem;
+    height: 1.875rem;
+    border-radius: 0.5rem;
+    background: var(--primary);
+    color: #fff;
+    font-size: 0.75rem;
     font-weight: 700;
-    color: white;
 }
 
-.login-header h1 {
-    font-size: 1.75rem;
-    margin-bottom: 0.5rem;
+.brand-name {
+    font-weight: 650;
     color: var(--text-primary);
 }
 
-.login-subtitle {
-    font-size: 0.9375rem;
-    color: var(--text-secondary);
-    line-height: 1.5;
+.brand-sep {
+    color: var(--border);
 }
 
-.login-features {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.feature {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.875rem;
-    padding: 1rem;
-    background: var(--border-light);
-    border-radius: var(--radius);
-    transition: all var(--transition-fast);
-}
-
-.feature:hover {
-    background: var(--border);
-}
-
-.feature-icon {
-    width: 2.5rem;
-    height: 2.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-    border-radius: var(--radius);
-    color: white;
-    flex-shrink: 0;
-}
-
-.feature-text h4 {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 0.125rem;
-}
-
-.feature-text p {
-    font-size: 0.8125rem;
+.brand-by {
     color: var(--text-muted);
 }
 
-.login-google {
+.login-intro h1 {
+    font-size: clamp(1.875rem, 4.2vw, 3.25rem);
+    line-height: 1.06;
+    letter-spacing: -0.032em;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-wrap: balance;
+    margin-bottom: 1.125rem;
+}
+
+/* Accent on the phrase that carries the promise; kept on one line so the
+   underline never breaks across two rows */
+.login-intro h1 em {
+    font-style: normal;
+    white-space: nowrap;
+    color: var(--secondary);
+    text-decoration: underline;
+    text-decoration-thickness: 0.075em;
+    text-underline-offset: 0.14em;
+    text-decoration-skip-ink: auto;
+}
+
+.login-lede {
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    max-width: 30rem;
+}
+
+.login-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+    padding: 0;
+    margin: 1.75rem 0 0;
+}
+
+.login-chips li {
+    padding: 0.3125rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    white-space: nowrap;
+}
+
+.login-stats {
+    display: flex;
+    align-items: stretch;
+    gap: 2rem;
+    margin: 2rem 0 0;
+}
+
+.login-stats > div {
+    padding-left: 1rem;
+    border-left: 2px solid var(--secondary);
+}
+
+.login-stats dd {
+    margin: 0;
+    font-size: 1.625rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.login-stats dt {
+    margin-top: 0.125rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* ---------- Right: the sign-in card ---------- */
+
+.login-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    width: 100%;
+    max-width: 23.5rem;
+    justify-self: end;
+}
+
+.login-card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 2rem 1.875rem 1.75rem;
+    overflow: hidden;
+}
+
+/* Thin accent rule across the top of the card */
+.login-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+}
+
+.login-card h2 {
+    font-size: 1.1875rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    margin-bottom: 0.3125rem;
+}
+
+.card-sub {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    margin-bottom: 1.625rem;
+}
+
+.login-card .alert {
     margin-bottom: 1rem;
 }
 
 .google-signin-button {
-    width: 100%;
-    min-height: 44px;
     display: flex;
+    flex-direction: column;
+    align-items: stretch;
     justify-content: center;
+    min-height: 44px;
 }
 
-.login-note {
+/* Google renders its own iframe here; we can only style the frame around it */
+.google-signin-slot {
+    display: flex;
+    justify-content: center;
+    border-radius: 999px;
+    transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.google-signin-button.is-ready .google-signin-slot {
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 6px 16px -6px rgb(0 0 0 / 0.28);
+}
+
+.google-signin-button.is-ready .google-signin-slot:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgb(0 0 0 / 0.1), 0 10px 22px -8px rgb(0 0 0 / 0.35);
+}
+
+.google-signin-slot:active {
+    transform: translateY(0);
+}
+
+.google-signin-placeholder {
+    display: block;
     text-align: center;
     font-size: 0.8125rem;
     color: var(--text-muted);
+    padding: 0.75rem 0;
 }
 
-.login-footer {
-    margin-top: 2rem;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.875rem;
+.login-note {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-light);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.login-note strong {
+    color: var(--text-primary);
+    font-weight: 650;
+}
+
+.login-help {
+    text-align: center;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+/* ---------- Small screens ---------- */
+
+@media (max-width: 960px) {
+    .login-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .login-panel {
+        justify-self: stretch;
+        max-width: none;
+    }
+
+    .login-page {
+        align-items: flex-start;
+        padding: 2.5rem 1.25rem 3rem;
+    }
+
+    .login-layout {
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+        max-width: 34rem;
+    }
+
+    .login-brand {
+        margin-bottom: 1.5rem;
+    }
+
+    .login-lede {
+        font-size: 1rem;
+    }
+
+    .login-stats {
+        gap: 1.25rem;
+    }
+
+    .login-stats > div {
+        padding-left: 0.75rem;
+    }
 }
 
 @media (max-width: 480px) {
-    .login-page {
-        padding: 1rem;
+    .login-intro h1 em {
+        white-space: normal;
     }
+}
 
+@media (max-width: 420px) {
     .login-card {
-        padding: 1.5rem;
+        padding: 1.75rem 1.25rem 1.5rem;
     }
 
-    .login-header h1 {
-        font-size: 1.5rem;
+    .login-stats dd {
+        font-size: 1.375rem;
+    }
+
+    .login-chips li {
+        font-size: 0.75rem;
     }
 }

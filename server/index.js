@@ -16,6 +16,7 @@ const resourceRoutes = require('./routes/resourceRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const backupRoutes = require('./routes/backupRoutes');
 const logRoutes = require('./routes/logRoutes');
+const publicRoutes = require('./routes/publicRoutes');
 
 const app = express();
 
@@ -109,6 +110,7 @@ app.use('/api/resources', resourceRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/api/public', publicRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
