@@ -9,13 +9,13 @@
  *                   lecturer. An empty cell is as informative as a full one, so
  *                   gaps are rendered and clickable.
  *
- *   Everything else -> grouped by (year, branch, professor), newest first.
- *                   Notes and slides are worthless detached from whoever gave
- *                   them; one course has several professors in a year, one per
- *                   branch cohort, and different ones across years.
+ *   Everything else -> one entry per year that opens to hold that year's notes,
+ *                   assignments, quizzes and slides. Year is how people look
+ *                   this up; professor is a filter over it, not a heading.
  *
- * Filters narrow both at once, because "show me what is relevant to me" is a
- * cohort question, not a section question.
+ * The filter bar narrows both halves at once. Picking a professor also narrows
+ * the paper grid to the years they taught, because a paper carries no professor
+ * of its own but still belongs to a sitting they set.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -32,8 +32,9 @@ const CourseDetail = () => {
   const [viewing, setViewing] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [openYears, setOpenYears] = useState([]);
 
-  const [filters, setFilters] = useState({ batch: '', department: '', professor: '' });
+  const [filters, setFilters] = useState({ batch: '', department: '', professor: '', year: '' });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -56,22 +57,63 @@ const CourseDetail = () => {
     load();
   }, [load]);
 
+  // The years the chosen professor taught. A paper has no professor attached,
+  // so this is what lets a professor filter narrow the paper grid too.
+  const professorYears = useMemo(() => {
+    if (!filters.professor || !view) return null;
+    const professor = view.filters.professors.find((p) => String(p._id) === filters.professor);
+    return new Set(professor?.years || []);
+  }, [filters.professor, view]);
+
   const matches = useCallback(
-    (material) =>
-      (!filters.batch || String(material.graduatingBatch) === filters.batch) &&
-      (!filters.department || material.department === filters.department) &&
-      (!filters.professor ||
-        (material.professors || []).some((prof) => String(prof._id) === filters.professor)),
-    [filters]
+    (material) => {
+      if (filters.batch && String(material.graduatingBatch) !== filters.batch) return false;
+      if (filters.department && material.department !== filters.department) return false;
+      if (filters.year && String(material.year) !== filters.year) return false;
+      if (filters.professor) {
+        const attributed = (material.professors || []).length > 0;
+        return attributed
+          ? material.professors.some((prof) => String(prof._id) === filters.professor)
+          : professorYears.has(material.year);
+      }
+      return true;
+    },
+    [filters, professorYears]
   );
 
-  const teaching = useMemo(
-    () =>
-      (view?.teaching || [])
-        .map((group) => ({ ...group, materials: group.materials.filter(matches) }))
-        .filter((group) => group.materials.length > 0),
-    [view, matches]
-  );
+  // Everything that isn't a paper, collected under the year it was taught in.
+  const years = useMemo(() => {
+    const byYear = new Map();
+    for (const group of view?.teaching || []) {
+      for (const material of group.materials) {
+        if (!matches(material)) continue;
+        if (!byYear.has(group.year)) {
+          byYear.set(group.year, { year: group.year, codeAtTime: group.codeAtTime, materials: [] });
+        }
+        byYear.get(group.year).materials.push({ ...material, department: material.department || group.department });
+      }
+    }
+    return [...byYear.values()]
+      .map((entry) => ({
+        ...entry,
+        materials: entry.materials.sort(
+          (a, b) => a.kind.localeCompare(b.kind) || a.title.localeCompare(b.title)
+        ),
+        professors: [
+          ...new Map(
+            entry.materials
+              .flatMap((material) => material.professors || [])
+              .map((prof) => [String(prof._id), prof])
+          ).values(),
+        ],
+      }))
+      .sort((a, b) => b.year - a.year);
+  }, [view, matches]);
+
+  const toggleYear = (year) =>
+    setOpenYears((current) =>
+      current.includes(year) ? current.filter((y) => y !== year) : [...current, year]
+    );
 
   const request = async (year, exam) => {
     await materialAPI.request({ course: view.course._id, kind: 'past_paper', exam, year });
@@ -82,6 +124,15 @@ const CourseDetail = () => {
   if (error) return <div className="sv-page"><div className="sv-error">{error}</div></div>;
 
   const { course, papers, filters: options, counts } = view;
+  const filtered = filters.batch || filters.department || filters.professor || filters.year;
+
+  // Rows the current filter can still show: a year filter picks one, a
+  // professor filter keeps the years they taught.
+  const paperRows = papers.rows.filter((row) => {
+    if (filters.year && String(row.year) !== filters.year) return false;
+    if (professorYears && !professorYears.has(row.year)) return false;
+    return true;
+  });
 
   return (
     <div className="sv-page">
@@ -109,164 +160,194 @@ const CourseDetail = () => {
       )}
 
       {/* One filter bar for the whole page: batch and branch are cohort
-          questions, professor is a "whose notes" question. */}
-      {(options.batches.length > 1 || options.departments.length > 1 || options.professors.length > 0) && (
-        <div className="sv-filters">
-          {options.batches.length > 1 && (
-            <select
-              value={filters.batch}
-              onChange={(event) => setFilters((prev) => ({ ...prev, batch: event.target.value }))}
-            >
-              <option value="">Any batch</option>
-              {options.batches.map((batch) => (
-                <option key={batch} value={batch}>Batch of {batch}</option>
-              ))}
-            </select>
-          )}
+          questions, professor and year narrow both halves. */}
+      <div className="sv-filters">
+        {options.batches.length > 1 && (
+          <select
+            value={filters.batch}
+            onChange={(event) => setFilters((prev) => ({ ...prev, batch: event.target.value }))}
+          >
+            <option value="">Any batch</option>
+            {options.batches.map((batch) => (
+              <option key={batch} value={batch}>Batch of {batch}</option>
+            ))}
+          </select>
+        )}
 
-          {options.departments.length > 1 && (
-            <select
-              value={filters.department}
-              onChange={(event) => setFilters((prev) => ({ ...prev, department: event.target.value }))}
-            >
-              <option value="">Any branch</option>
-              {options.departments.map((department) => (
-                <option key={department} value={department}>{department.toUpperCase()}</option>
-              ))}
-            </select>
-          )}
+        {options.departments.length > 1 && (
+          <select
+            value={filters.department}
+            onChange={(event) => setFilters((prev) => ({ ...prev, department: event.target.value }))}
+          >
+            <option value="">Any branch</option>
+            {options.departments.map((department) => (
+              <option key={department} value={department}>{department.toUpperCase()}</option>
+            ))}
+          </select>
+        )}
 
-          {options.professors.length > 0 && (
-            <select
-              value={filters.professor}
-              onChange={(event) => setFilters((prev) => ({ ...prev, professor: event.target.value }))}
-            >
-              <option value="">Any professor</option>
-              {options.professors.map((professor) => (
-                <option key={professor._id} value={professor._id}>
-                  {professor.name} ({professor.years.join(', ')})
-                </option>
-              ))}
-            </select>
-          )}
+        {options.professors.length > 0 && (
+          <select
+            value={filters.professor}
+            onChange={(event) => setFilters((prev) => ({ ...prev, professor: event.target.value }))}
+          >
+            <option value="">Any professor</option>
+            {options.professors.map((professor) => (
+              <option key={professor._id} value={professor._id}>{professor.name}</option>
+            ))}
+          </select>
+        )}
 
-          {(filters.batch || filters.department || filters.professor) && (
-            <button
-              type="button"
-              className="sv-btn sv-btn-ghost sv-btn-sm"
-              onClick={() => setFilters({ batch: '', department: '', professor: '' })}
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      )}
+        {options.years.length > 0 && (
+          <select
+            value={filters.year}
+            onChange={(event) => setFilters((prev) => ({ ...prev, year: event.target.value }))}
+          >
+            <option value="">Any year</option>
+            {options.years.map((year) => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        )}
+
+        {filtered && (
+          <button
+            type="button"
+            className="sv-btn sv-btn-ghost sv-btn-sm"
+            onClick={() => setFilters({ batch: '', department: '', professor: '', year: '' })}
+          >
+            Clear
+          </button>
+        )}
+      </div>
 
       {/* --- exam papers: pinned to a sitting, so a year x exam grid -------- */}
       <section className="sv-section">
         <h2>Past papers</h2>
-        <div className="sv-scroll">
-          <table className="sv-grid">
-            <thead>
-              <tr>
-                <th>Year</th>
-                <th>Code then</th>
-                {papers.exams.map((exam) => (
-                  <th key={exam}>{examLabel(exam)}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {papers.rows.map((row) => (
-                <tr key={row.year}>
-                  <td>{row.year}</td>
-                  <td><span className="sv-code">{row.codeAtTime}</span></td>
-
-                  {papers.exams.map((exam) => {
-                    const cell = row.cells[exam];
-                    const visible = cell.materials.filter(matches);
-
-                    return (
-                      <td key={exam}>
-                        {visible.length > 0 ? (
-                          // Several entries in one cell is normal: separate
-                          // branch cohorts sit separate papers for one course.
-                          <div className="sv-cell">
-                            {visible.map((material) => (
-                              <button
-                                type="button"
-                                key={material._id}
-                                className="sv-paper"
-                                onClick={() => setViewing(material)}
-                              >
-                                {material.department.toUpperCase()}
-                                {material.origin === 'saviour_drive' && (
-                                  <span className="sv-dot" title="In the saviour Drive" />
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            className="sv-slot-empty"
-                            onClick={() => request(row.year, exam)}
-                          >
-                            missing{cell.requests ? ` · ${cell.requests} asked` : ' · request'}
-                          </button>
-                        )}
-                      </td>
-                    );
-                  })}
+        {paperRows.length === 0 ? (
+          <div className="sv-empty">No sittings match this filter.</div>
+        ) : (
+          <div className="sv-scroll">
+            <table className="sv-grid">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th>Code then</th>
+                  {papers.exams.map((exam) => (
+                    <th key={exam}>{examLabel(exam)}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {paperRows.map((row) => (
+                  <tr key={row.year}>
+                    <td>{row.year}</td>
+                    <td><span className="sv-code">{row.codeAtTime}</span></td>
+
+                    {papers.exams.map((exam) => {
+                      const cell = row.cells[exam];
+                      const visible = cell.materials.filter(matches);
+
+                      return (
+                        <td key={exam}>
+                          {visible.length > 0 ? (
+                            // Several entries in one cell is normal: separate
+                            // branch cohorts sit separate papers, and a paper
+                            // and its solution live in the same sitting.
+                            <div className="sv-cell">
+                              {visible.map((material) => (
+                                <button
+                                  type="button"
+                                  key={material._id}
+                                  className={`sv-paper ${material.kind === 'solution' ? 'sv-paper-solution' : ''}`}
+                                  onClick={() => setViewing(material)}
+                                  title={`${kindLabel(material.kind)} · ${material.title}`}
+                                >
+                                  {material.department.toUpperCase()}
+                                  <span className="sv-paper-tag">
+                                    {material.kind === 'solution' ? 'solution' : 'paper'}
+                                  </span>
+                                  {material.origin === 'saviour_drive' && (
+                                    <span className="sv-dot" title="In the saviour Drive" />
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="sv-slot-empty"
+                              onClick={() => request(row.year, exam)}
+                            >
+                              missing{cell.requests ? ` · ${cell.requests} asked` : ' · request'}
+                            </button>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
-      {/* --- everything else: grouped by who taught it --------------------- */}
+      {/* --- everything else: one entry per year, opened to see inside ----- */}
       <section className="sv-section">
-        <h2>Notes, slides and references</h2>
+        <h2>Notes, assignments and everything else</h2>
 
-        {teaching.length === 0 && (
+        {years.length === 0 && (
           <div className="sv-empty">
-            Nothing here yet{filters.batch || filters.department || filters.professor ? ' for this filter' : ''}.
+            Nothing here yet{filtered ? ' for this filter' : ''}.
           </div>
         )}
 
-        {teaching.map((group) => (
-          <article className="sv-group" key={group.key}>
-            <header className="sv-group-head">
-              <div>
-                <strong>
-                  {group.professors.length > 0
-                    ? group.professors.map((prof) => prof.name).join(', ')
-                    : 'Not attributed to a professor'}
-                </strong>
-                <span className="sv-muted">
-                  {' '}· {group.year} · {group.department.toUpperCase()} · batch of {group.graduatingBatch}
+        {years.map((entry) => {
+          const open = openYears.includes(entry.year);
+          return (
+            <article className={`sv-year ${open ? 'is-open' : ''}`} key={entry.year}>
+              <button
+                type="button"
+                className="sv-year-head"
+                onClick={() => toggleYear(entry.year)}
+                aria-expanded={open}
+              >
+                <span className="sv-year-label">
+                  <span className="sv-year-caret" aria-hidden="true">{open ? '▾' : '▸'}</span>
+                  <strong>{entry.year}</strong>
+                  <span className="sv-code">{entry.codeAtTime}</span>
                 </span>
-              </div>
-              <span className="sv-muted">{group.materials.length}</span>
-            </header>
+                <span className="sv-muted">
+                  {entry.professors.length > 0
+                    ? entry.professors.map((prof) => prof.name).join(', ')
+                    : 'Not attributed'}
+                  {' · '}
+                  {entry.materials.length} item{entry.materials.length === 1 ? '' : 's'}
+                </span>
+              </button>
 
-            <ul className="sv-items">
-              {group.materials.map((material) => (
-                <li key={material._id}>
-                  <button type="button" className="sv-item" onClick={() => setViewing(material)}>
-                    <span className="sv-item-kind">{kindLabel(material.kind)}</span>
-                    <span className="sv-item-title">{material.title}</span>
-                  </button>
-                  <span className="sv-item-meta sv-muted">
-                    {material.origin === 'saviour_drive' ? 'saviour Drive' : 'student Drive'}
-                    {material.upvotes > 0 ? ` · ${material.upvotes}▲` : ''}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </article>
-        ))}
+              {open && (
+                <ul className="sv-items">
+                  {entry.materials.map((material) => (
+                    <li key={material._id}>
+                      <button type="button" className="sv-item" onClick={() => setViewing(material)}>
+                        <span className="sv-item-kind">{kindLabel(material.kind)}</span>
+                        <span className="sv-item-title">{material.title}</span>
+                      </button>
+                      <span className="sv-item-meta sv-muted">
+                        {(material.professors || []).map((prof) => prof.name).join(', ') || '—'}
+                        {' · '}{material.department.toUpperCase()}
+                        {material.origin === 'saviour_drive' ? ' · saviour Drive' : ''}
+                        {material.upvotes > 0 ? ` · ${material.upvotes}▲` : ''}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          );
+        })}
       </section>
 
       <div className="sv-actions" style={{ marginTop: '2rem' }}>

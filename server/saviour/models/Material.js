@@ -20,10 +20,22 @@
 
 const mongoose = require('mongoose');
 
-const KINDS = ['past_paper', 'solution', 'notes', 'slides', 'book', 'cheatsheet', 'other'];
-const EXAMS = ['mid', 'end', 'quiz', 'tutorial', 'practical'];
+const KINDS = [
+    'past_paper', 'solution', 'notes', 'slides', 'book',
+    'assignment', 'quiz', 'surprise_quiz', 'tutorial',
+    // Legacy values: no longer offered, kept so old records still validate
+    'cheatsheet', 'other',
+];
+// An exam sitting. 'quiz' and 'tutorial' are legacy here: they are kinds of
+// their own now, so only these three are offered for new submissions.
+const EXAMS = ['mid', 'end', 'practical', 'quiz', 'tutorial'];
+const CURRENT_EXAMS = ['mid', 'end', 'practical'];
 // Kinds that are pinned to a sitting of an exam rather than to a lecturer
 const EXAM_KINDS = ['past_paper', 'solution'];
+// Kinds that make no sense without knowing who taught them
+const PROFESSOR_REQUIRED_KINDS = ['notes', 'slides', 'assignment', 'quiz', 'surprise_quiz', 'tutorial'];
+// How long a rejected or withdrawn submission stays visible in a user's history
+const HISTORY_TTL_DAYS = 30;
 
 const sourceSchema = new mongoose.Schema(
     {
@@ -123,6 +135,12 @@ const materialSchema = new mongoose.Schema(
             },
         ],
         viewCount: { type: Number, default: 0 },
+
+        // Rejected and withdrawn submissions are history, not content. Mongo
+        // deletes them 30 days after the decision through the TTL index below,
+        // so the free tier never carries dead records. Approved material has no
+        // purge date: it is the content.
+        purgeAt: { type: Date, default: null },
     },
     { timestamps: true }
 );
@@ -135,6 +153,20 @@ materialSchema.pre('validate', function () {
     if (!EXAM_KINDS.includes(this.kind)) {
         this.exam = null;
     }
+    // Notes without a lecturer are unfindable, so they are not accepted
+    if (PROFESSOR_REQUIRED_KINDS.includes(this.kind) && (this.professors || []).length === 0) {
+        this.invalidate('professors', 'Say who taught this - notes and the like are grouped by professor');
+    }
+});
+
+// Keep the purge date in step with the status on every save
+materialSchema.pre('save', function () {
+    if (['rejected', 'withdrawn'].includes(this.status)) {
+        const decided = this.decidedAt || new Date();
+        this.purgeAt = new Date(decided.getTime() + HISTORY_TTL_DAYS * 24 * 60 * 60 * 1000);
+    } else {
+        this.purgeAt = null;
+    }
 });
 
 // The course page
@@ -143,6 +175,10 @@ materialSchema.index({ course: 1, status: 1, year: -1 });
 materialSchema.index({ course: 1, status: 1, professors: 1 });
 // The approval panel, scoped to a custodian's branch and batch
 materialSchema.index({ status: 1, department: 1, graduatingBatch: 1, createdAt: 1 });
+// Rejected/withdrawn history expires by itself; nothing has to sweep it
+materialSchema.index({ purgeAt: 1 }, { expireAfterSeconds: 0 });
+// A user's own submissions, newest first
+materialSchema.index({ submittedBy: 1, createdAt: -1 });
 // The same Drive file cannot be filed twice against one course
 materialSchema.index(
     { course: 1, 'source.fileId': 1 },
@@ -151,7 +187,10 @@ materialSchema.index(
 
 materialSchema.statics.KINDS = KINDS;
 materialSchema.statics.EXAMS = EXAMS;
+materialSchema.statics.CURRENT_EXAMS = CURRENT_EXAMS;
 materialSchema.statics.EXAM_KINDS = EXAM_KINDS;
+materialSchema.statics.PROFESSOR_REQUIRED_KINDS = PROFESSOR_REQUIRED_KINDS;
+materialSchema.statics.HISTORY_TTL_DAYS = HISTORY_TTL_DAYS;
 
 const Material = mongoose.model('Material', materialSchema);
 

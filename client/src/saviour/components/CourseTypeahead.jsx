@@ -121,8 +121,8 @@ const CourseTypeahead = ({ value, onSelect, onNotFound, placeholder, autoFocus }
 
           {onNotFound && (
             <li>
-              <button type="button" className="sv-result sv-muted" onClick={onNotFound}>
-                Can’t find it? Request that it be added →
+              <button type="button" className="sv-result sv-add-course" onClick={onNotFound}>
+                + Add course{query.trim() ? ` “${query.trim()}”` : ''}
               </button>
             </li>
           )}

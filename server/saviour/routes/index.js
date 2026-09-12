@@ -22,6 +22,7 @@ const {
     updateCourse,
     requestCourse,
     listCourseRequests,
+    myCourseRequests,
     decideCourseRequest,
 } = require('../controllers/courseController');
 
@@ -60,6 +61,7 @@ router.use(protect);
 
 // --- Courses -------------------------------------------------------------
 // Static segments before :identifier, or "requests" resolves as a course code
+router.get('/courses/requests/mine', myCourseRequests);
 router.get('/courses/requests', admin, listCourseRequests);
 router.post('/courses/requests', requestCourse);
 // Accepting is what creates the catalog entry, so it is an admin action

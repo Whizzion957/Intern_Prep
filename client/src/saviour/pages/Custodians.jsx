@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { custodianAPI } from '../api';
+import { DEPARTMENTS, DEFAULT_DEPARTMENT, BATCH_MIN, BATCH_MAX, isValidBatch } from '../../constants/departments';
 import '../saviour.css';
 
 const thisYear = new Date().getFullYear();
@@ -20,7 +21,7 @@ const Custodians = () => {
   const [custodians, setCustodians] = useState([]);
   const [form, setForm] = useState({
     email: '',
-    department: '',
+    department: DEFAULT_DEPARTMENT,
     graduatingBatch: String(thisYear + 1),
     driveFolderUrl: '',
     note: '',
@@ -48,6 +49,12 @@ const Custodians = () => {
     event.preventDefault();
     setError('');
     setWarning('');
+
+    if (!form.department) return setError('Pick a branch');
+    if (!isValidBatch(form.graduatingBatch)) {
+      return setError(`Graduating batch must be a four digit year between ${BATCH_MIN} and ${BATCH_MAX}`);
+    }
+
     try {
       const { data } = await custodianAPI.assign({
         ...form,
@@ -95,23 +102,30 @@ const Custodians = () => {
           </div>
           <div className="sv-field">
             <label>Branch</label>
-            <input
-              className="sv-input"
-              value={form.department}
-              onChange={set('department')}
-              placeholder="cs"
-            />
+            <select value={form.department} onChange={set('department')}>
+              {DEPARTMENTS.map((dept) => (
+                <option key={dept.code} value={dept.code}>
+                  {dept.code.toUpperCase()} · {dept.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="sv-field">
             <label>Graduating batch</label>
             <input
               className="sv-input"
               type="number"
-              min="2000"
-              max={thisYear + 8}
+              inputMode="numeric"
+              min={BATCH_MIN}
+              max={BATCH_MAX}
+              step="1"
               value={form.graduatingBatch}
               onChange={set('graduatingBatch')}
+              aria-invalid={form.graduatingBatch !== '' && !isValidBatch(form.graduatingBatch)}
             />
+            {form.graduatingBatch !== '' && !isValidBatch(form.graduatingBatch) && (
+              <p className="sv-field-error">Four digit year, {BATCH_MIN} to {BATCH_MAX}</p>
+            )}
           </div>
         </div>
 

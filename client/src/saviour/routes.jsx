@@ -15,6 +15,8 @@ import AddMaterial from './pages/AddMaterial';
 import RequestCourse from './pages/RequestCourse';
 import ApprovalPanel from './pages/ApprovalPanel';
 import Custodians from './pages/Custodians';
+import MySubmissions from './pages/MySubmissions';
+import CourseAdmin from './pages/CourseAdmin';
 
 const saviourRoutes = [
   <Route key="sv-home" path="/saviour" element={<CourseSearch />} />,
@@ -23,7 +25,9 @@ const saviourRoutes = [
   <Route key="sv-course" path="/saviour/course/:code" element={<CourseDetail />} />,
   <Route key="sv-add" path="/saviour/add" element={<AddMaterial />} />,
   <Route key="sv-request" path="/saviour/request-course" element={<RequestCourse />} />,
+  <Route key="sv-mine" path="/saviour/mine" element={<MySubmissions />} />,
   <Route key="sv-approvals" path="/saviour/approvals" element={<ApprovalPanel />} />,
+  <Route key="sv-admin" path="/saviour/admin" element={<CourseAdmin />} />,
   <Route key="sv-custodians" path="/saviour/custodians" element={<Custodians />} />,
 ];
 

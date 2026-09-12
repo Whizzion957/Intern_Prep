@@ -11,6 +11,7 @@
 
 import { useState } from 'react';
 import { courseAPI } from '../api';
+import { DEPARTMENTS, DEFAULT_DEPARTMENT } from '../../constants/departments';
 
 const CourseRequestQueue = ({ requests, onChange }) => {
   const [editing, setEditing] = useState(null);
@@ -25,10 +26,17 @@ const CourseRequestQueue = ({ requests, onChange }) => {
       name: request.name,
       code: request.code,
       allDepartments: false,
-      // Prefilled from what the student filed; editable because they only know
-      // their own branch and the course may be shared with others.
-      offeredTo: `${request.department || ''}:${request.semester || ''}`,
-      aliases: '',
+      // One row per branch that takes it. Prefilled from what the student
+      // filed, because they only know their own branch and the course may be
+      // shared with others.
+      offeredTo: [
+        {
+          department: request.department || DEFAULT_DEPARTMENT,
+          semester: request.semester ? String(request.semester) : '',
+        },
+      ],
+      aliases: [],
+      aliasDraft: '',
       credits: '',
     });
   };
@@ -40,13 +48,16 @@ const CourseRequestQueue = ({ requests, onChange }) => {
       const offeredTo = draft.allDepartments
         ? []
         : draft.offeredTo
-            .split(';')
-            .map((part) => part.trim())
-            .filter(Boolean)
-            .map((part) => {
-              const [department, semester] = part.split(':').map((piece) => piece.trim());
-              return { department: department.toLowerCase(), semester: semester ? Number(semester) : null };
-            });
+            .filter((row) => row.department)
+            .map((row) => ({
+              department: row.department.toLowerCase(),
+              semester: row.semester ? Number(row.semester) : null,
+            }));
+
+      if (!draft.allDepartments && offeredTo.length === 0) {
+        setBusy(null);
+        return setError('Add at least one branch, or tick that every branch takes it');
+      }
 
       await courseAPI.decideRequest(request._id, 'accepted', {
         name: draft.name,
@@ -54,7 +65,7 @@ const CourseRequestQueue = ({ requests, onChange }) => {
         allDepartments: draft.allDepartments,
         offeredTo,
         defaultSemester: offeredTo[0]?.semester ?? null,
-        aliases: draft.aliases.split(';').map((a) => a.trim()).filter(Boolean),
+        aliases: [...draft.aliases, draft.aliasDraft].map((a) => a.trim()).filter(Boolean),
         credits: draft.credits ? Number(draft.credits) : null,
       });
       setEditing(null);
@@ -149,26 +160,103 @@ const CourseRequestQueue = ({ requests, onChange }) => {
               {!draft.allDepartments && (
                 <div className="sv-field" style={{ marginTop: '0.75rem' }}>
                   <label>Branches that take it, and the semester for each</label>
-                  <input
-                    className="sv-input"
-                    value={draft.offeredTo}
-                    onChange={(e) => setDraft({ ...draft, offeredTo: e.target.value })}
-                    placeholder="cs:3;mfs:4"
-                  />
-                  <p className="sv-muted" style={{ marginTop: '0.3rem' }}>
-                    Semicolon separated. The semester is per branch because the same
-                    course sits in different semesters for different branches.
+                  <p className="sv-muted" style={{ margin: '0 0 0.5rem' }}>
+                    The semester is per branch: the same course sits in different
+                    semesters for different branches.
                   </p>
+
+                  {draft.offeredTo.map((row, index) => (
+                    <div className="sv-offer-row" key={index}>
+                      <select
+                        value={row.department}
+                        onChange={(e) => setDraft({
+                          ...draft,
+                          offeredTo: draft.offeredTo.map((entry, i) =>
+                            i === index ? { ...entry, department: e.target.value } : entry),
+                        })}
+                      >
+                        <option value="">Branch…</option>
+                        {DEPARTMENTS.map((dept) => (
+                          <option key={dept.code} value={dept.code}>
+                            {dept.code.toUpperCase()} · {dept.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      <select
+                        value={row.semester}
+                        onChange={(e) => setDraft({
+                          ...draft,
+                          offeredTo: draft.offeredTo.map((entry, i) =>
+                            i === index ? { ...entry, semester: e.target.value } : entry),
+                        })}
+                      >
+                        <option value="">Semester…</option>
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((sem) => (
+                          <option key={sem} value={sem}>Semester {sem}</option>
+                        ))}
+                      </select>
+
+                      {draft.offeredTo.length > 1 && (
+                        <button
+                          type="button"
+                          className="sv-btn sv-btn-ghost sv-btn-sm"
+                          onClick={() => setDraft({
+                            ...draft,
+                            offeredTo: draft.offeredTo.filter((_, i) => i !== index),
+                          })}
+                          aria-label="Remove this branch"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    className="sv-btn sv-btn-ghost sv-btn-sm"
+                    onClick={() => setDraft({
+                      ...draft,
+                      offeredTo: [...draft.offeredTo, { department: '', semester: '' }],
+                    })}
+                  >
+                    + Another branch
+                  </button>
                 </div>
               )}
 
               <div className="sv-field" style={{ marginTop: '0.75rem' }}>
                 <label>Aliases students might type (optional)</label>
+                <div className="sv-chips">
+                  {draft.aliases.map((alias) => (
+                    <span className="sv-chip" key={alias}>
+                      {alias}
+                      <button
+                        type="button"
+                        onClick={() => setDraft({
+                          ...draft,
+                          aliases: draft.aliases.filter((a) => a !== alias),
+                        })}
+                        aria-label={`Remove ${alias}`}
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
                 <input
                   className="sv-input"
-                  value={draft.aliases}
-                  onChange={(e) => setDraft({ ...draft, aliases: e.target.value })}
-                  placeholder="DSA;DS"
+                  value={draft.aliasDraft}
+                  onChange={(e) => setDraft({ ...draft, aliasDraft: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter' && e.key !== ',') return;
+                    e.preventDefault();
+                    const alias = draft.aliasDraft.trim();
+                    if (!alias || draft.aliases.includes(alias)) return;
+                    setDraft({ ...draft, aliases: [...draft.aliases, alias], aliasDraft: '' });
+                  }}
+                  placeholder="Type DSA and press Enter"
                 />
               </div>
 

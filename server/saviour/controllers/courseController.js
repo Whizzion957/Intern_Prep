@@ -227,6 +227,25 @@ const listCourseRequests = async (req, res) => {
 };
 
 /**
+ * GET /api/saviour/courses/requests/mine
+ *
+ * A student's own course requests, so a rejection reaches the person who asked
+ * rather than dying in the admin queue.
+ */
+const myCourseRequests = async (req, res) => {
+    try {
+        const requests = await CourseRequest.find({ requestedBy: req.user._id })
+            .populate('resultingCourse', 'name codes')
+            .sort({ createdAt: -1 })
+            .lean();
+        res.json({ requests });
+    } catch (error) {
+        console.error('[saviour] myCourseRequests:', error);
+        res.status(500).json({ message: 'Could not load your course requests' });
+    }
+};
+
+/**
  * PATCH /api/saviour/courses/requests/:id - admin only
  * Body: { decision: 'accepted' | 'rejected', course?: {...}, note }
  *
@@ -312,6 +331,7 @@ const decideCourseRequest = async (req, res) => {
 };
 
 module.exports = {
+    myCourseRequests,
     listCourses,
     getCourse,
     getCourseMaterials,

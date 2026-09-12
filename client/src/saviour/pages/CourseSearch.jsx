@@ -9,29 +9,18 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import CourseTypeahead from '../components/CourseTypeahead';
-import { gapAPI, custodianAPI, kindLabel, examLabel } from '../api';
+import { gapAPI, kindLabel, examLabel } from '../api';
 import '../saviour.css';
 
 const CourseSearch = () => {
   const navigate = useNavigate();
   const [gaps, setGaps] = useState([]);
-  // Whether to offer the approval / custodian pages. The navbar deliberately
-  // carries one Saviour tab, so these hang off the landing page instead.
-  const [role, setRole] = useState({ isAdmin: false, isSuperadmin: false, custodianships: [] });
-
   useEffect(() => {
     gapAPI
       .list({ limit: 12 })
       .then(({ data }) => setGaps(data.gaps))
       .catch(() => setGaps([]));
-
-    custodianAPI
-      .mine()
-      .then(({ data }) => setRole(data))
-      .catch(() => {});
   }, []);
-
-  const canApprove = role.isSuperadmin || role.custodianships.length > 0;
 
   return (
     <div className="sv-page">
@@ -40,27 +29,16 @@ const CourseSearch = () => {
         <p>Past papers, notes and slides by course. Search by code or name.</p>
       </header>
 
-      <CourseTypeahead
-        autoFocus
-        onSelect={(course) => navigate(`/saviour/course/${course.code}`)}
-        onNotFound={() => navigate('/saviour/request-course')}
-      />
-
-      <div className="sv-actions" style={{ marginTop: '1rem' }}>
-        <Link className="sv-btn sv-btn-ghost sv-btn-sm" to="/saviour/add">Add material</Link>
-        {(canApprove || role.isAdmin) && (
-          <Link className="sv-btn sv-btn-ghost sv-btn-sm" to="/saviour/approvals">
-            Approvals
-            {role.custodianships.length > 0 && !role.isSuperadmin && (
-              <> · {role.custodianships
-                .map((entry) => `${entry.department.toUpperCase()} ’${String(entry.graduatingBatch).slice(2)}`)
-                .join(', ')}</>
-            )}
-          </Link>
-        )}
-        {role.isSuperadmin && (
-          <Link className="sv-btn sv-btn-ghost sv-btn-sm" to="/saviour/custodians">Custodians</Link>
-        )}
+      {/* Not autofocused: landing here shouldn't drop a cursor and a dropdown
+          in your face before you have decided to search. */}
+      <div className="sv-search-row">
+        <CourseTypeahead
+          onSelect={(course) => navigate(`/saviour/course/${course.code}`)}
+          onNotFound={() => navigate('/saviour/request-course')}
+        />
+        <Link className="sv-btn sv-btn-ghost" to="/saviour/request-course">
+          Add course
+        </Link>
       </div>
 
       {gaps.length > 0 && (

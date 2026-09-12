@@ -14,7 +14,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import CourseTypeahead from '../components/CourseTypeahead';
 import ProfessorPicker from '../components/ProfessorPicker';
-import { courseAPI, materialAPI, KINDS, EXAMS, EXAM_KINDS } from '../api';
+import { courseAPI, materialAPI, KINDS, EXAMS, EXAM_KINDS, PROFESSOR_REQUIRED_KINDS } from '../api';
+import { DEPARTMENTS, DEFAULT_DEPARTMENT, BATCH_MIN, BATCH_MAX, isValidBatch } from '../../constants/departments';
 import { useAuth } from '../../context';
 import '../saviour.css';
 
@@ -52,7 +53,7 @@ const AddMaterial = () => {
     const joined = /^(\d{2})\d{4,8}$/.exec(user?.enrollmentNumber || '');
     setForm((prev) => ({
       ...prev,
-      department: prev.department || user?.department || '',
+      department: prev.department || user?.department || DEFAULT_DEPARTMENT,
       graduatingBatch:
         prev.graduatingBatch || (joined ? String(2000 + Number(joined[1]) + 4) : ''),
     }));
@@ -91,6 +92,15 @@ const AddMaterial = () => {
   const set = (field) => (event) =>
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
 
+  // Display-only, but a code the course never had is usually a typo
+  const codeMismatch =
+    course &&
+    form.codeAtTime.trim() &&
+    (course.codes || []).length > 0 &&
+    !(course.codes || []).some(
+      (entry) => entry.code.toUpperCase() === form.codeAtTime.trim().toUpperCase()
+    );
+
   // Which branches may be chosen: what the course is actually offered to
   const branchOptions = course
     ? course.allDepartments
@@ -105,7 +115,12 @@ const AddMaterial = () => {
     if (!course) return setError('Pick a course first');
     if (!form.title.trim()) return setError('Give it a title');
     if (!form.department) return setError('Say which branch this is for');
-    if (!form.graduatingBatch) return setError('Say which graduating batch this is for');
+    if (!isValidBatch(form.graduatingBatch)) {
+      return setError(`Graduating batch must be a four digit year between ${BATCH_MIN} and ${BATCH_MAX}`);
+    }
+    if (PROFESSOR_REQUIRED_KINDS.includes(form.kind) && professors.length === 0) {
+      return setError('Say who taught this. Notes and the like are grouped by professor, so they are lost without one.');
+    }
     if (!url.trim()) return setError('Paste the Google Drive link');
     if (!publicConfirmed) return setError('Confirm the file is shared with anyone who has the link');
 
@@ -234,21 +249,17 @@ const AddMaterial = () => {
         <div className="sv-row">
           <div className="sv-field">
             <label>Whose course was this — branch</label>
-            {branchOptions ? (
-              <select value={form.department} onChange={set('department')}>
-                <option value="">Choose…</option>
-                {branchOptions.map((department) => (
-                  <option key={department} value={department}>{department.toUpperCase()}</option>
-                ))}
-              </select>
-            ) : (
-              <input
-                className="sv-input"
-                value={form.department}
-                onChange={set('department')}
-                placeholder="cs"
-              />
-            )}
+            <select value={form.department} onChange={set('department')}>
+              <option value="">Choose…</option>
+              {(branchOptions
+                ? DEPARTMENTS.filter((dept) => branchOptions.includes(dept.code))
+                : DEPARTMENTS
+              ).map((dept) => (
+                <option key={dept.code} value={dept.code}>
+                  {dept.code.toUpperCase()} · {dept.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="sv-field">
@@ -256,38 +267,55 @@ const AddMaterial = () => {
             <input
               className="sv-input"
               type="number"
-              min="2000"
-              max={thisYear + 8}
+              inputMode="numeric"
+              min={BATCH_MIN}
+              max={BATCH_MAX}
+              step="1"
               value={form.graduatingBatch}
               onChange={set('graduatingBatch')}
               placeholder="2027"
+              aria-invalid={form.graduatingBatch !== '' && !isValidBatch(form.graduatingBatch)}
             />
-            <p className="sv-muted" style={{ marginTop: '0.3rem' }}>
-              The batch that took the course, not necessarily yours.
-            </p>
+            {form.graduatingBatch !== '' && !isValidBatch(form.graduatingBatch) ? (
+              <p className="sv-field-error">Four digit year, {BATCH_MIN} to {BATCH_MAX}</p>
+            ) : (
+              <p className="sv-muted" style={{ marginTop: '0.3rem' }}>
+                The batch that took the course, not necessarily yours.
+              </p>
+            )}
           </div>
         </div>
 
         <div className="sv-field">
-          <label>Professor{EXAM_KINDS.includes(form.kind) ? ' (optional for papers)' : ''}</label>
+          <label>
+            Professor{PROFESSOR_REQUIRED_KINDS.includes(form.kind) ? '' : ' (optional)'}
+          </label>
           <ProfessorPicker
             selected={professors}
             onChange={setProfessors}
             department={form.department}
           />
           <p className="sv-muted" style={{ marginTop: '0.3rem' }}>
-            {EXAM_KINDS.includes(form.kind)
-              ? 'Everyone sat the same paper, so this can be left blank.'
-              : 'Notes are grouped by whoever gave them — this is what makes them findable.'}
+            {PROFESSOR_REQUIRED_KINDS.includes(form.kind)
+              ? 'Required: this is grouped by whoever taught it, which is what makes it findable.'
+              : 'Everyone sat the same paper, so this can be left blank.'}
           </p>
         </div>
 
         <div className="sv-field">
           <label>Code printed on it</label>
           <input className="sv-input" value={form.codeAtTime} onChange={set('codeAtTime')} />
-          <p className="sv-muted" style={{ marginTop: '0.3rem' }}>
-            Filled in from the year. Correct it if the paper says otherwise.
-          </p>
+          {codeMismatch ? (
+            <p className="sv-field-warn">
+              {course.name} has never been called {form.codeAtTime.toUpperCase()} (
+              {(course.codes || []).map((entry) => entry.code).join(', ')}). Fine if that is
+              really what the paper says, otherwise check it.
+            </p>
+          ) : (
+            <p className="sv-muted" style={{ marginTop: '0.3rem' }}>
+              Filled in from the year. Correct it if the paper says otherwise.
+            </p>
+          )}
         </div>
 
         {/* The link. There is no upload option anywhere - by design. */}

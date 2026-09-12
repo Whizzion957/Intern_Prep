@@ -130,6 +130,12 @@ const createMaterial = async (req, res) => {
             });
         }
 
+        // Quizzes and tutorials are kinds of their own now, so a new paper can
+        // only belong to one of the three real sittings.
+        if (Material.EXAM_KINDS.includes(kind) && !Material.CURRENT_EXAMS.includes(exam)) {
+            return res.status(400).json({ message: 'A paper must be from the MTE, the ETE or a practical' });
+        }
+
         const custodian = await custodianFor(cohortDepartment, cohortBatch);
 
         const material = await Material.create({

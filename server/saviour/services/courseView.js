@@ -25,7 +25,9 @@ const { codeForYear } = require('./courseCodes');
 const { driveUrls } = require('./drive');
 
 const EXAM_KINDS = Material.EXAM_KINDS;
-const PAPER_EXAMS = ['mid', 'end'];
+// Columns of the paper grid. 'practical' joined mid and end when quizzes and
+// tutorials became kinds of their own.
+const PAPER_EXAMS = ['mid', 'end', 'practical'];
 
 /** Public shape of one material, with the three Drive URLs the client needs. */
 const serialize = (material, viewerId) => {

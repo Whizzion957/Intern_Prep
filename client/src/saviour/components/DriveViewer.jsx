@@ -56,11 +56,9 @@ const DriveViewer = ({ material, onClose }) => {
           </div>
 
           <div className="sv-viewer-actions">
-            {/* Download is a plain link to Drive's export URL - no proxying,
-                so a big PDF never touches our server. */}
-            <a className="sv-btn sv-btn-ghost" href={material.download} target="_blank" rel="noopener noreferrer">
-              Download
-            </a>
+            {/* No download button: these are view-only Drive links, so an
+                export URL just returns Drive's permission page. Drive's own
+                download lives inside the file, when the owner allows it. */}
             <a className="sv-btn sv-btn-ghost" href={material.view} target="_blank" rel="noopener noreferrer">
               Open in Drive
             </a>

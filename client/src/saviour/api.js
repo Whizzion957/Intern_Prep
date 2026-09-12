@@ -37,6 +37,7 @@ export const courseAPI = {
   update: (id, data) => saviour.put(`/courses/${id}`, data),
   request: (data) => saviour.post('/courses/requests', data),
   listRequests: (status) => saviour.get('/courses/requests', { params: { status } }),
+  myRequests: () => saviour.get('/courses/requests/mine'),
   // Accepting creates the catalog entry; `course` overrides what the student guessed
   decideRequest: (id, decision, course, note) =>
     saviour.patch(`/courses/requests/${id}`, { decision, course, note }),
@@ -83,22 +84,34 @@ export const KINDS = [
   { value: 'notes', label: 'Notes' },
   { value: 'slides', label: 'Slides' },
   { value: 'book', label: 'Book' },
-  { value: 'cheatsheet', label: 'Cheatsheet' },
-  { value: 'other', label: 'Other' },
+  { value: 'assignment', label: 'Assignment' },
+  { value: 'quiz', label: 'Quiz' },
+  { value: 'surprise_quiz', label: 'Surprise quiz' },
+  { value: 'tutorial', label: 'Tutorial' },
 ];
 
+// Which sitting a paper or solution is from
 export const EXAMS = [
-  { value: 'mid', label: 'Mid term' },
-  { value: 'end', label: 'End term' },
-  { value: 'quiz', label: 'Quiz' },
-  { value: 'tutorial', label: 'Tutorial' },
+  { value: 'mid', label: 'MTE' },
+  { value: 'end', label: 'ETE' },
   { value: 'practical', label: 'Practical' },
 ];
 
-// Kinds pinned to a sitting of an exam rather than to a lecturer
-export const EXAM_KINDS = ['past_paper', 'solution'];
+// Legacy values that still exist on old records
+const LEGACY_LABELS = {
+  cheatsheet: 'Cheatsheet',
+  other: 'Other',
+  quiz_exam: 'Quiz',
+  tutorial_exam: 'Tutorial',
+};
 
-export const kindLabel = (value) => KINDS.find((k) => k.value === value)?.label || value;
-export const examLabel = (value) => EXAMS.find((e) => e.value === value)?.label || value;
+export const EXAM_KINDS = ['past_paper', 'solution'];
+export const PROFESSOR_REQUIRED_KINDS = ['notes', 'slides', 'assignment', 'quiz', 'surprise_quiz', 'tutorial'];
+
+export const kindLabel = (value) =>
+  KINDS.find((k) => k.value === value)?.label || LEGACY_LABELS[value] || value;
+export const examLabel = (value) =>
+  EXAMS.find((e) => e.value === value)?.label ||
+  { quiz: 'Quiz', tutorial: 'Tutorial' }[value] || value;
 
 export default saviour;
