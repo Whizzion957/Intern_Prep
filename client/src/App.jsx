@@ -4,6 +4,7 @@ import { AuthProvider, ThemeProvider, useAuth } from './context';
 import { Navbar } from './components';
 import {
   LoginPage,
+  PortalChoice,
   Dashboard,
   AddQuestion,
   ViewQuestions,
@@ -34,8 +35,9 @@ const queryClient = new QueryClient({
   },
 });
 
-// Protected route wrapper
-const ProtectedRoute = () => {
+// Protected route wrapper. `withNav={false}` is for full-page screens that
+// stand on their own, like the portal chooser shown right after sign-in.
+const ProtectedRoute = ({ withNav = true }) => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
@@ -57,6 +59,10 @@ const ProtectedRoute = () => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!withNav) {
+    return <Outlet />;
   }
 
   return (
@@ -91,7 +97,7 @@ const PublicRoute = ({ children }) => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/portal" replace />;
   }
 
   return children;
@@ -111,6 +117,11 @@ function AppContent() {
           }
         />
         <Route path="/beta-restricted" element={<BetaRestricted />} />
+
+        {/* Portal chooser: protected, but without the app navbar */}
+        <Route element={<ProtectedRoute withNav={false} />}>
+          <Route path="/portal" element={<PortalChoice />} />
+        </Route>
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>

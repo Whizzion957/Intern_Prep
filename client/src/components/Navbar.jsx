@@ -1,13 +1,18 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, useTheme } from '../context';
 import { useState, useRef, useEffect } from 'react';
 import { questionAPI } from '../services/api';
+import { custodianAPI } from '../saviour/api';
 import './Navbar.css';
 
 const Navbar = () => {
     const { user, logout, isAdmin, isSuperAdmin } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
+    const { pathname } = useLocation();
+    // The two portals share this navbar but not their links
+    const inSaviour = pathname.startsWith('/saviour');
+    const [savTour, setSavTour] = useState({ isCustodian: false, isAdmin: false });
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [rateLimits, setRateLimits] = useState(null);
@@ -36,6 +41,17 @@ const Navbar = () => {
         }
     }, [dropdownOpen, user]);
 
+    // Who this person is inside Saviour decides which of its links they see
+    useEffect(() => {
+        if (!inSaviour || !user) return;
+        custodianAPI.mine()
+            .then(({ data }) => setSavTour({
+                isCustodian: (data.custodianships || []).length > 0 || data.isSuperadmin,
+                isAdmin: Boolean(data.isAdmin || data.isSuperadmin),
+            }))
+            .catch(() => setSavTour({ isCustodian: false, isAdmin: false }));
+    }, [inSaviour, user]);
+
     const handleLogout = async () => {
         await logout();
         navigate('/login');
@@ -53,28 +69,63 @@ const Navbar = () => {
     return (
         <nav className="navbar">
             <div className="navbar-container">
-                <Link to="/" className="navbar-brand" onClick={closeMobileMenu}>
+                <Link to={inSaviour ? '/saviour' : '/'} className="navbar-brand" onClick={closeMobileMenu}>
                     <div className="navbar-logo">
-                        <span className="logo-icon">IAI</span>
+                        <span className="logo-icon">{inSaviour ? 'SAV' : 'IAI'}</span>
                     </div>
                     <div className="navbar-title">
-                        <span className="title-main">Intern At IITR</span>
-                        <span className="title-sub">Beta Version</span>
+                        <span className="title-main">{inSaviour ? 'Saviour' : 'Intern At IITR'}</span>
+                        <span className="title-sub">{inSaviour ? 'Course material' : 'Beta Version'}</span>
                     </div>
                 </Link>
 
                 <div className="navbar-actions">
                     {/* Desktop nav links */}
-                    {user && (
+                    {user && inSaviour && (
+                        <div className="nav-links-desktop">
+                            <Link to="/saviour" className="nav-link">
+                                Courses
+                            </Link>
+                            <Link to="/saviour/add" className="nav-link">
+                                Add Material
+                            </Link>
+                            <Link to="/saviour/mine" className="nav-link">
+                                My Submissions
+                            </Link>
+                            {savTour.isCustodian && (
+                                <Link to="/saviour/approvals" className="nav-link">
+                                    Approvals
+                                </Link>
+                            )}
+                            {(savTour.isCustodian || savTour.isAdmin) && (
+                                <Link to="/saviour/admin" className="nav-link">
+                                    Corrections
+                                </Link>
+                            )}
+                            {isSuperAdmin && (
+                                <Link to="/saviour/custodians" className="nav-link nav-link-admin">
+                                    Custodians
+                                </Link>
+                            )}
+                            <Link to="/portal" className="nav-link nav-link-portal" title="Switch portal">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                                </svg>
+                                Switch
+                            </Link>
+                        </div>
+                    )}
+
+                    {user && !inSaviour && (
                         <div className="nav-links-desktop">
                             <Link to="/questions" className="nav-link">
                                 Questions
                             </Link>
                             <Link to="/resources" className="nav-link">
                                 Resources
-                            </Link>
-                            <Link to="/saviour" className="nav-link">
-                                Saviour
                             </Link>
                             <Link to="/companies" className="nav-link">
                                 Companies
@@ -90,6 +141,15 @@ const Navbar = () => {
                                     Admin
                                 </Link>
                             )}
+                            <Link to="/portal" className="nav-link nav-link-portal" title="Switch portal">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                                </svg>
+                                Switch
+                            </Link>
                         </div>
                     )}
 
@@ -159,7 +219,7 @@ const Navbar = () => {
                                     </div>
                                 </div>
                                 <hr className="dropdown-divider" />
-                                <Link to="/my-submissions" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
+                                <Link to={inSaviour ? '/saviour/mine' : '/my-submissions'} className="dropdown-item" onClick={() => setDropdownOpen(false)}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                                         <polyline points="14 2 14 8 20 8" />
@@ -200,6 +260,15 @@ const Navbar = () => {
                                         </div>
                                     </>
                                 )} */}
+                                <Link to="/portal" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                                        <rect x="14" y="14" width="7" height="7" rx="1" />
+                                    </svg>
+                                    Switch portal
+                                </Link>
                                 <hr className="dropdown-divider" />
                                 <button className="dropdown-item" onClick={handleLogout}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -222,6 +291,70 @@ const Navbar = () => {
             {/* Mobile menu overlay */}
             {user && mobileMenuOpen && (
                 <div className="mobile-menu">
+                    {inSaviour ? (
+                        <>
+                            <Link to="/saviour" className="mobile-menu-item" onClick={closeMobileMenu}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <path d="m21 21-4.35-4.35" />
+                                </svg>
+                                Courses
+                            </Link>
+                            <Link to="/saviour/add" className="mobile-menu-item" onClick={closeMobileMenu}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="16" />
+                                    <line x1="8" y1="12" x2="16" y2="12" />
+                                </svg>
+                                Add Material
+                            </Link>
+                            <Link to="/saviour/mine" className="mobile-menu-item" onClick={closeMobileMenu}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                    <line x1="16" y1="13" x2="8" y2="13" />
+                                </svg>
+                                My Submissions
+                            </Link>
+                            {savTour.isCustodian && (
+                                <Link to="/saviour/approvals" className="mobile-menu-item" onClick={closeMobileMenu}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M9 11l3 3L22 4" />
+                                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                                    </svg>
+                                    Approvals
+                                </Link>
+                            )}
+                            {(savTour.isCustodian || savTour.isAdmin) && (
+                                <Link to="/saviour/admin" className="mobile-menu-item" onClick={closeMobileMenu}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                    Corrections
+                                </Link>
+                            )}
+                            {isSuperAdmin && (
+                                <Link to="/saviour/custodians" className="mobile-menu-item mobile-menu-admin" onClick={closeMobileMenu}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                    </svg>
+                                    Custodians
+                                </Link>
+                            )}
+                            <Link to="/portal" className="mobile-menu-item" onClick={closeMobileMenu}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                                </svg>
+                                Switch portal
+                            </Link>
+                        </>
+                    ) : (
+                        <>
                     <Link to="/questions" className="mobile-menu-item" onClick={closeMobileMenu}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="12" cy="12" r="10" />
@@ -236,13 +369,6 @@ const Navbar = () => {
                             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                         </svg>
                         Resources
-                    </Link>
-                    <Link to="/saviour" className="mobile-menu-item" onClick={closeMobileMenu}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M22 10L12 5 2 10l10 5 10-5z" />
-                            <path d="M6 12v5c3 3 9 3 12 0v-5" />
-                        </svg>
-                        Saviour
                     </Link>
                     <Link to="/companies" className="mobile-menu-item" onClick={closeMobileMenu}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -274,6 +400,15 @@ const Navbar = () => {
                         </svg>
                         Credits
                     </Link>
+                    <Link to="/portal" className="mobile-menu-item" onClick={closeMobileMenu}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="3" y="3" width="7" height="7" rx="1" />
+                            <rect x="14" y="3" width="7" height="7" rx="1" />
+                            <rect x="3" y="14" width="7" height="7" rx="1" />
+                            <rect x="14" y="14" width="7" height="7" rx="1" />
+                        </svg>
+                        Switch portal
+                    </Link>
                     {isSuperAdmin && (
                         <Link to="/admin" className="mobile-menu-item mobile-menu-admin" onClick={closeMobileMenu}>
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -282,6 +417,8 @@ const Navbar = () => {
                             </svg>
                             Admin Panel
                         </Link>
+                    )}
+                        </>
                     )}
                 </div>
             )}

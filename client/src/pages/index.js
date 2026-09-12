@@ -1,4 +1,5 @@
 export { default as LoginPage } from './LoginPage';
+export { default as PortalChoice } from './PortalChoice';
 export { default as Dashboard } from './Dashboard';
 export { default as AddQuestion } from './AddQuestion';
 export { default as ViewQuestions } from './ViewQuestions';

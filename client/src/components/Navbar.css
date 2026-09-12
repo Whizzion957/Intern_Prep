@@ -297,3 +297,16 @@
         display: none;
     }
 }
+/* Switch portal sits with the nav links but reads as a mode change, not a page */
+.nav-link-portal {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding-inline: 0.65rem;
+}
+
+.nav-link-portal:hover {
+    border-color: var(--primary);
+}
