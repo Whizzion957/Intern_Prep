@@ -21,6 +21,8 @@ import {
   ResourceDetail,
   EditResource,
 } from './pages';
+// Saviour - academic materials module (self-contained, see saviour/)
+import saviourRoutes from './saviour';
 import './styles/index.css';
 
 const queryClient = new QueryClient({
@@ -127,6 +129,8 @@ function AppContent() {
           <Route path="/add-resource" element={<AddResource />} />
           <Route path="/resources/:id" element={<ResourceDetail />} />
           <Route path="/resources/:id/edit" element={<EditResource />} />
+
+          {saviourRoutes}
         </Route>
 
         {/* Catch all */}

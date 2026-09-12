@@ -73,6 +73,9 @@ const Navbar = () => {
                             <Link to="/resources" className="nav-link">
                                 Resources
                             </Link>
+                            <Link to="/saviour" className="nav-link">
+                                Saviour
+                            </Link>
                             <Link to="/companies" className="nav-link">
                                 Companies
                             </Link>
@@ -233,6 +236,13 @@ const Navbar = () => {
                             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                         </svg>
                         Resources
+                    </Link>
+                    <Link to="/saviour" className="mobile-menu-item" onClick={closeMobileMenu}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M22 10L12 5 2 10l10 5 10-5z" />
+                            <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                        </svg>
+                        Saviour
                     </Link>
                     <Link to="/companies" className="mobile-menu-item" onClick={closeMobileMenu}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

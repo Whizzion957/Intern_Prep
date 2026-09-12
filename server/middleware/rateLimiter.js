@@ -35,6 +35,12 @@ const RATE_LIMITS = {
         admin: 150,
         window: 24 * 60 * 60,
     },
+    // Saviour: past papers / notes submissions
+    materials: {
+        user: 20,
+        admin: 100,
+        window: 24 * 60 * 60,
+    },
 };
 
 /**

@@ -18,6 +18,9 @@ const backupRoutes = require('./routes/backupRoutes');
 const logRoutes = require('./routes/logRoutes');
 const publicRoutes = require('./routes/publicRoutes');
 
+// Saviour - academic materials module (self-contained, see saviour/README.md)
+const saviourRoutes = require('./saviour');
+
 const app = express();
 
 // Connect to database
@@ -111,6 +114,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/saviour', saviourRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

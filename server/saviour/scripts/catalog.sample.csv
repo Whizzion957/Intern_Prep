@@ -1,0 +1,9 @@
+name,codes,departments,credits,owningDepartment,aliases
+Data Structures,CSN-102:2018:2023;CSC-201:2024,cs:3;mfs:3,4,cs,DS;DSA
+Design and Analysis of Algorithms,CSN-221:2018:2023;CSC-302:2024,cs:4;mfs:4,4,cs,DAA;Algo
+Operating Systems,CSN-232,cs:5,4,cs,OS
+Database Management Systems,CSN-341,cs:5;mfs:5,4,cs,DBMS
+Computer Networks,CSN-361,cs:6,4,cs,CN;Networks
+Engineering Mathematics I,MAN-001,all:1,4,ma,Maths 1;M1
+Environmental Studies,EQN-101,all:2,3,eq,EVS
+Thermodynamics,MIN-104,me:3;ch:3,4,me,Thermo
