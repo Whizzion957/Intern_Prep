@@ -24,6 +24,15 @@ const materialRequestSchema = new mongoose.Schema(
 
         requestedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
         count: { type: Number, default: 0 },
+        // Free-text asks attached to this slot, newest first, capped so the
+        // document stays small. Optional: most requests are a bare "+1".
+        notes: [
+            {
+                user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+                text: { type: String, trim: true, maxlength: 300 },
+                at: { type: Date, default: Date.now },
+            },
+        ],
         // Set once a matching material is approved, so the slot stops nagging
         fulfilledAt: { type: Date, default: null },
         fulfilledBy: {

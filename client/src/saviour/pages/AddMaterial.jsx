@@ -303,8 +303,13 @@ const AddMaterial = () => {
         </div>
 
         <div className="sv-field">
-          <label>Code printed on it</label>
-          <input className="sv-input" value={form.codeAtTime} onChange={set('codeAtTime')} />
+          <label>Course code printed on it (if different)</label>
+          <input
+            className="sv-input"
+            value={form.codeAtTime}
+            onChange={set('codeAtTime')}
+            placeholder={course?.code || 'e.g. CSC-201'}
+          />
           {codeMismatch ? (
             <p className="sv-field-warn">
               {course.name} has never been called {form.codeAtTime.toUpperCase()} (
@@ -313,7 +318,8 @@ const AddMaterial = () => {
             </p>
           ) : (
             <p className="sv-muted" style={{ marginTop: '0.3rem' }}>
-              Filled in from the year. Correct it if the paper says otherwise.
+              Filled in from the year. Only change it if the header on the paper
+              shows a different code.
             </p>
           )}
         </div>

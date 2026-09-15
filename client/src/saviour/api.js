@@ -105,6 +105,21 @@ const LEGACY_LABELS = {
   tutorial_exam: 'Tutorial',
 };
 
+// Kinds that get their own block on the course page (order matters), each with
+// year links to a dedicated list page. Papers and solutions live in the grid.
+export const NON_EXAM_KINDS = ['assignment', 'quiz', 'surprise_quiz', 'tutorial', 'notes', 'slides', 'book'];
+
+const PLURAL = {
+  assignment: 'Assignments',
+  quiz: 'Quizzes',
+  surprise_quiz: 'Surprise quizzes',
+  tutorial: 'Tutorials',
+  notes: 'Notes',
+  slides: 'Slides',
+  book: 'Books',
+};
+export const kindLabelPlural = (value) => PLURAL[value] || `${kindLabel(value)}`;
+
 export const EXAM_KINDS = ['past_paper', 'solution'];
 export const PROFESSOR_REQUIRED_KINDS = ['notes', 'slides', 'assignment', 'quiz', 'surprise_quiz', 'tutorial'];
 

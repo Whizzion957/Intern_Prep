@@ -45,6 +45,8 @@ const CourseAdmin = () => {
   const [professors, setProfessors] = useState([]);
   const [profQuery, setProfQuery] = useState('');
   const [mergeFrom, setMergeFrom] = useState(null);
+  const [editingProf, setEditingProf] = useState(null);
+  const [profDraft, setProfDraft] = useState(null);
 
   // --- materials ----------------------------------------------------------
   const [materialCourse, setMaterialCourse] = useState(null);
@@ -141,12 +143,31 @@ const CourseAdmin = () => {
     return () => clearTimeout(timer);
   }, [tab, profQuery, loadProfessors]);
 
-  const saveProfessor = async (professor, changes) => {
+  const startEditProf = (professor) => {
+    setEditingProf(professor._id);
+    setProfDraft({
+      name: professor.name,
+      department: professor.department || '',
+      verified: Boolean(professor.verified),
+      aliases: professor.aliases || [],
+      aliasDraft: '',
+    });
+  };
+
+  const saveProfDraft = async (professor) => {
+    if (!profDraft.name.trim()) return setError('A professor needs a name');
     try {
-      await professorAPI.update(professor._id, changes);
+      await professorAPI.update(professor._id, {
+        name: profDraft.name.trim(),
+        department: profDraft.department || null,
+        verified: profDraft.verified,
+        aliases: [...profDraft.aliases, profDraft.aliasDraft].map((a) => a.trim()).filter(Boolean),
+      });
+      setEditingProf(null);
+      setNotice(`${profDraft.name.trim()} saved.`);
       loadProfessors(profQuery);
     } catch (err) {
-      setError(err.response?.data?.message || 'Could not update the professor');
+      setError(err.response?.data?.message || 'Could not save the professor');
     }
   };
 
@@ -452,8 +473,9 @@ const CourseAdmin = () => {
               placeholder="Name, or leave blank for all"
             />
             <p className="sv-muted" style={{ marginTop: '0.3rem' }}>
-              Unverified entries were typed by students while submitting. Verify the
-              real ones, merge the duplicates: merging moves every material across.
+              Unverified entries were typed by students while submitting. Edit any
+              field, verify the real ones, or merge duplicates: merging moves every
+              material across.
             </p>
           </div>
 
@@ -468,41 +490,103 @@ const CourseAdmin = () => {
           <ul className="sv-history">
             {professors.map((professor) => (
               <li className="sv-history-item" key={professor._id}>
-                <div className="sv-history-main">
-                  <input
-                    className="sv-input"
-                    defaultValue={professor.name}
-                    onBlur={(e) => {
-                      const name = e.target.value.trim();
-                      if (name && name !== professor.name) saveProfessor(professor, { name });
-                    }}
-                  />
-                  <span className="sv-muted">
-                    {professor.department ? professor.department.toUpperCase() : 'No branch'}
-                    {professor.verified ? ' · verified' : ' · unverified'}
-                  </span>
-                </div>
-                <div className="sv-history-side">
-                  {!professor.verified && (
-                    <button
-                      className="sv-btn sv-btn-ghost sv-btn-sm"
-                      onClick={() => saveProfessor(professor, { verified: true })}
-                    >
-                      Verify
-                    </button>
-                  )}
-                  {mergeFrom ? (
-                    mergeFrom._id !== professor._id && (
-                      <button className="sv-btn sv-btn-sm" onClick={() => merge(professor)}>
-                        Merge into this
-                      </button>
-                    )
-                  ) : (
-                    <button className="sv-btn sv-btn-ghost sv-btn-sm" onClick={() => setMergeFrom(professor)}>
-                      Merge…
-                    </button>
-                  )}
-                </div>
+                {editingProf === professor._id ? (
+                  <div className="sv-history-main" style={{ gridColumn: '1 / -1' }}>
+                    <div className="sv-row">
+                      <div className="sv-field">
+                        <label>Name</label>
+                        <input
+                          className="sv-input"
+                          value={profDraft.name}
+                          onChange={(e) => setProfDraft({ ...profDraft, name: e.target.value })}
+                        />
+                      </div>
+                      <div className="sv-field">
+                        <label>Branch</label>
+                        <select
+                          value={profDraft.department}
+                          onChange={(e) => setProfDraft({ ...profDraft, department: e.target.value })}
+                        >
+                          <option value="">No branch</option>
+                          {DEPARTMENTS.map((dept) => (
+                            <option key={dept.code} value={dept.code}>{dept.code.toUpperCase()} · {dept.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="sv-field">
+                      <label>Other spellings students type</label>
+                      <div className="sv-chips">
+                        {profDraft.aliases.map((alias) => (
+                          <span className="sv-chip" key={alias}>
+                            {alias}
+                            <button
+                              type="button"
+                              onClick={() => setProfDraft({ ...profDraft, aliases: profDraft.aliases.filter((a) => a !== alias) })}
+                            >✕</button>
+                          </span>
+                        ))}
+                      </div>
+                      <input
+                        className="sv-input"
+                        value={profDraft.aliasDraft}
+                        placeholder="Type a spelling and press Enter"
+                        onChange={(e) => setProfDraft({ ...profDraft, aliasDraft: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Enter' && e.key !== ',') return;
+                          e.preventDefault();
+                          const alias = profDraft.aliasDraft.trim();
+                          if (!alias || profDraft.aliases.includes(alias)) return;
+                          setProfDraft({ ...profDraft, aliases: [...profDraft.aliases, alias], aliasDraft: '' });
+                        }}
+                      />
+                    </div>
+
+                    <label className="sv-inline-check" style={{ marginTop: '0.25rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={profDraft.verified}
+                        onChange={(e) => setProfDraft({ ...profDraft, verified: e.target.checked })}
+                      />
+                      Verified — a real person, named correctly
+                    </label>
+
+                    <div className="sv-actions">
+                      <button className="sv-btn" onClick={() => saveProfDraft(professor)}>Save</button>
+                      <button className="sv-btn sv-btn-ghost" onClick={() => setEditingProf(null)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="sv-history-main">
+                      <strong>{professor.name}</strong>
+                      <span className="sv-muted">
+                        {professor.department ? professor.department.toUpperCase() : 'No branch'}
+                        {professor.verified ? ' · verified' : ' · unverified'}
+                        {(professor.aliases || []).length > 0 ? ` · also ${professor.aliases.join(', ')}` : ''}
+                      </span>
+                    </div>
+                    <div className="sv-history-side">
+                      {mergeFrom ? (
+                        mergeFrom._id !== professor._id && (
+                          <button className="sv-btn sv-btn-sm" onClick={() => merge(professor)}>
+                            Merge into this
+                          </button>
+                        )
+                      ) : (
+                        <>
+                          <button className="sv-btn sv-btn-ghost sv-btn-sm" onClick={() => startEditProf(professor)}>
+                            Edit
+                          </button>
+                          <button className="sv-btn sv-btn-ghost sv-btn-sm" onClick={() => setMergeFrom(professor)}>
+                            Merge…
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
               </li>
             ))}
           </ul>

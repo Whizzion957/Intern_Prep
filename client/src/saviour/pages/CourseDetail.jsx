@@ -21,7 +21,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import DriveViewer from '../components/DriveViewer';
-import { courseAPI, materialAPI, kindLabel, examLabel } from '../api';
+import RequestMaterial from '../components/RequestMaterial';
+import { courseAPI, materialAPI, kindLabel, kindLabelPlural, examLabel, NON_EXAM_KINDS } from '../api';
 import '../saviour.css';
 
 const CourseDetail = () => {
@@ -30,9 +31,9 @@ const CourseDetail = () => {
   const [meta, setMeta] = useState(null);
   const [view, setView] = useState(null);
   const [viewing, setViewing] = useState(null);
+  const [requesting, setRequesting] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [openYears, setOpenYears] = useState([]);
 
   const [filters, setFilters] = useState({ batch: '', department: '', professor: '', year: '' });
 
@@ -81,39 +82,29 @@ const CourseDetail = () => {
     [filters, professorYears]
   );
 
-  // Everything that isn't a paper, collected under the year it was taught in.
-  const years = useMemo(() => {
-    const byYear = new Map();
+  // Non-exam material, split into one block per kind, each block a set of
+  // years. A year is a link to that (kind, year)'s own page.
+  const kindBlocks = useMemo(() => {
+    const byKind = new Map();
     for (const group of view?.teaching || []) {
       for (const material of group.materials) {
         if (!matches(material)) continue;
-        if (!byYear.has(group.year)) {
-          byYear.set(group.year, { year: group.year, codeAtTime: group.codeAtTime, materials: [] });
-        }
-        byYear.get(group.year).materials.push({ ...material, department: material.department || group.department });
+        if (!byKind.has(material.kind)) byKind.set(material.kind, new Map());
+        const years = byKind.get(material.kind);
+        years.set(material.year, (years.get(material.year) || 0) + 1);
       }
     }
-    return [...byYear.values()]
-      .map((entry) => ({
-        ...entry,
-        materials: entry.materials.sort(
-          (a, b) => a.kind.localeCompare(b.kind) || a.title.localeCompare(b.title)
-        ),
-        professors: [
-          ...new Map(
-            entry.materials
-              .flatMap((material) => material.professors || [])
-              .map((prof) => [String(prof._id), prof])
-          ).values(),
-        ],
-      }))
-      .sort((a, b) => b.year - a.year);
+    // Fixed order (NON_EXAM_KINDS), then any legacy kind that still has records
+    const order = [...NON_EXAM_KINDS, ...[...byKind.keys()].filter((k) => !NON_EXAM_KINDS.includes(k))];
+    return order
+      .filter((kind) => byKind.has(kind))
+      .map((kind) => ({
+        kind,
+        years: [...byKind.get(kind).entries()]
+          .map(([year, count]) => ({ year, count }))
+          .sort((a, b) => b.year - a.year),
+      }));
   }, [view, matches]);
-
-  const toggleYear = (year) =>
-    setOpenYears((current) =>
-      current.includes(year) ? current.filter((y) => y !== year) : [...current, year]
-    );
 
   const request = async (year, exam) => {
     await materialAPI.request({ course: view.course._id, kind: 'past_paper', exam, year });
@@ -150,6 +141,14 @@ const CourseDetail = () => {
           {course.credits ? ` · ${course.credits} credits` : ''}
           {` · ${counts.total} item${counts.total === 1 ? '' : 's'}`}
         </p>
+        <div className="sv-header-actions">
+          <Link className="sv-btn sv-btn-sm" to={`/saviour/add?course=${course._id}`}>
+            Add material
+          </Link>
+          <button className="sv-btn sv-btn-ghost sv-btn-sm" onClick={() => setRequesting(true)}>
+            Request something
+          </button>
+        </div>
       </header>
 
       {meta.viaLegacyCode && (
@@ -293,71 +292,55 @@ const CourseDetail = () => {
         )}
       </section>
 
-      {/* --- everything else: one entry per year, opened to see inside ----- */}
-      <section className="sv-section">
-        <h2>Notes, assignments and everything else</h2>
-
-        {years.length === 0 && (
+      {/* --- everything else: one block per kind, each a set of year links --- */}
+      {kindBlocks.length === 0 ? (
+        <section className="sv-section">
+          <h2>Notes, assignments and more</h2>
           <div className="sv-empty">
             Nothing here yet{filtered ? ' for this filter' : ''}.
           </div>
-        )}
-
-        {years.map((entry) => {
-          const open = openYears.includes(entry.year);
-          return (
-            <article className={`sv-year ${open ? 'is-open' : ''}`} key={entry.year}>
-              <button
-                type="button"
-                className="sv-year-head"
-                onClick={() => toggleYear(entry.year)}
-                aria-expanded={open}
-              >
-                <span className="sv-year-label">
-                  <span className="sv-year-caret" aria-hidden="true">{open ? '▾' : '▸'}</span>
-                  <strong>{entry.year}</strong>
-                  <span className="sv-code">{entry.codeAtTime}</span>
-                </span>
-                <span className="sv-muted">
-                  {entry.professors.length > 0
-                    ? entry.professors.map((prof) => prof.name).join(', ')
-                    : 'Not attributed'}
-                  {' · '}
-                  {entry.materials.length} item{entry.materials.length === 1 ? '' : 's'}
-                </span>
-              </button>
-
-              {open && (
-                <ul className="sv-items">
-                  {entry.materials.map((material) => (
-                    <li key={material._id}>
-                      <button type="button" className="sv-item" onClick={() => setViewing(material)}>
-                        <span className="sv-item-kind">{kindLabel(material.kind)}</span>
-                        <span className="sv-item-title">{material.title}</span>
-                      </button>
-                      <span className="sv-item-meta sv-muted">
-                        {(material.professors || []).map((prof) => prof.name).join(', ') || '—'}
-                        {' · '}{material.department.toUpperCase()}
-                        {material.origin === 'saviour_drive' ? ' · saviour Drive' : ''}
-                        {material.upvotes > 0 ? ` · ${material.upvotes}▲` : ''}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </article>
-          );
-        })}
-      </section>
+        </section>
+      ) : (
+        <div className="sv-kind-blocks">
+          {kindBlocks.map((block) => (
+            <section className="sv-kind-block" key={block.kind}>
+              <h3>{kindLabelPlural(block.kind)}</h3>
+              <div className="sv-year-links">
+                {block.years.map(({ year, count }) => (
+                  <Link
+                    key={year}
+                    to={`/saviour/course/${code}/${block.kind}/${year}`}
+                    className="sv-year-link"
+                  >
+                    <span className="sv-year-link-year">{year}</span>
+                    <span className="sv-year-link-count">{count}</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
 
       <div className="sv-actions" style={{ marginTop: '2rem' }}>
         <Link className="sv-btn" to={`/saviour/add?course=${course._id}`}>
           Add material for this course
         </Link>
+        <button className="sv-btn sv-btn-ghost" onClick={() => setRequesting(true)}>
+          Request something
+        </button>
         <Link className="sv-btn sv-btn-ghost" to="/saviour">Search another course</Link>
       </div>
 
       {viewing && <DriveViewer material={viewing} onClose={() => setViewing(null)} />}
+      {requesting && (
+        <RequestMaterial
+          course={course}
+          canonicalCode={view.canonicalCode}
+          onClose={() => setRequesting(false)}
+          onDone={load}
+        />
+      )}
     </div>
   );
 };

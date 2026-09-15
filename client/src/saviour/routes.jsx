@@ -11,6 +11,7 @@
 import { Route } from 'react-router-dom';
 import CourseSearch from './pages/CourseSearch';
 import CourseDetail from './pages/CourseDetail';
+import MaterialList from './pages/MaterialList';
 import AddMaterial from './pages/AddMaterial';
 import RequestCourse from './pages/RequestCourse';
 import ApprovalPanel from './pages/ApprovalPanel';
@@ -23,6 +24,7 @@ const saviourRoutes = [
   // Any code the course has ever used resolves here; the page says so when the
   // one you typed is retired.
   <Route key="sv-course" path="/saviour/course/:code" element={<CourseDetail />} />,
+  <Route key="sv-material-list" path="/saviour/course/:code/:kind/:year" element={<MaterialList />} />,
   <Route key="sv-add" path="/saviour/add" element={<AddMaterial />} />,
   <Route key="sv-request" path="/saviour/request-course" element={<RequestCourse />} />,
   <Route key="sv-mine" path="/saviour/mine" element={<MySubmissions />} />,

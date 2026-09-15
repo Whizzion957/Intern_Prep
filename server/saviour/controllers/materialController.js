@@ -480,9 +480,12 @@ const reportMaterial = async (req, res) => {
 /** POST /api/saviour/materials/request - "this slot is empty, I wanted it" */
 const requestMaterial = async (req, res) => {
     try {
-        const { course: courseRef, kind, exam, year } = req.body;
+        const { course: courseRef, kind, exam, year, note } = req.body;
         if (!courseRef || !kind || !year) {
             return res.status(400).json({ message: 'course, kind and year are required' });
+        }
+        if (!Material.KINDS.includes(kind)) {
+            return res.status(400).json({ message: 'Unknown material kind' });
         }
 
         const course = await resolveCourse(courseRef);
@@ -495,6 +498,13 @@ const requestMaterial = async (req, res) => {
             { $addToSet: { requestedBy: req.user._id } },
             { new: true, upsert: true }
         );
+
+        // An optional free-text ask, newest first, capped so the doc stays small
+        const trimmed = String(note || '').trim();
+        if (trimmed) {
+            request.notes.unshift({ user: req.user._id, text: trimmed.slice(0, 300), at: new Date() });
+            request.notes = request.notes.slice(0, 25);
+        }
 
         request.count = request.requestedBy.length;
         await request.save();
