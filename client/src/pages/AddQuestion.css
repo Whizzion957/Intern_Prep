@@ -152,7 +152,7 @@
 }
 
 .radio-card.active .radio-content {
-    background: rgba(26, 35, 126, 0.1);
+    background: rgba(75, 90, 166, 0.1);
     border-color: var(--primary);
     color: var(--primary);
 }

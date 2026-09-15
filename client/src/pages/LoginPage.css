@@ -15,8 +15,8 @@
     inset: 0;
     pointer-events: none;
     background-image:
-        radial-gradient(circle at 88% 8%, rgba(255, 87, 34, 0.10), transparent 42%),
-        radial-gradient(circle at 4% 92%, rgba(26, 35, 126, 0.10), transparent 45%),
+        radial-gradient(circle at 88% 8%, rgba(207, 120, 96, 0.10), transparent 42%),
+        radial-gradient(circle at 4% 92%, rgba(75, 90, 166, 0.10), transparent 45%),
         radial-gradient(currentColor 1px, transparent 1px);
     background-size: auto, auto, 22px 22px;
     color: rgba(15, 23, 42, 0.06);
@@ -25,8 +25,8 @@
 [data-theme="dark"] .login-backdrop {
     color: rgba(255, 255, 255, 0.05);
     background-image:
-        radial-gradient(circle at 88% 8%, rgba(255, 112, 67, 0.12), transparent 42%),
-        radial-gradient(circle at 4% 92%, rgba(124, 138, 255, 0.12), transparent 45%),
+        radial-gradient(circle at 88% 8%, rgba(225, 139, 115, 0.12), transparent 42%),
+        radial-gradient(circle at 4% 92%, rgba(139, 149, 232, 0.12), transparent 45%),
         radial-gradient(currentColor 1px, transparent 1px);
 }
 

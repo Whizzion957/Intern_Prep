@@ -76,7 +76,7 @@
 
 .nav-link:hover {
     color: var(--primary);
-    background: rgba(26, 35, 126, 0.05);
+    background: rgba(75, 90, 166, 0.05);
 }
 
 .nav-link-admin {
@@ -85,7 +85,7 @@
 
 .nav-link-admin:hover {
     color: var(--secondary-dark);
-    background: rgba(255, 87, 34, 0.05);
+    background: rgba(207, 120, 96, 0.05);
 }
 
 .theme-toggle {

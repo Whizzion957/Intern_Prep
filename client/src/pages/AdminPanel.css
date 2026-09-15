@@ -115,7 +115,7 @@
 
 .tab.active {
     color: var(--primary);
-    background: rgba(26, 35, 126, 0.1);
+    background: rgba(75, 90, 166, 0.1);
 }
 
 /* Users Section */

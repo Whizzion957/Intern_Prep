@@ -52,6 +52,15 @@ const Navbar = () => {
             .catch(() => setSavTour({ isCustodian: false, isAdmin: false }));
     }, [inSaviour, user]);
 
+    // Flag the document while inside Saviour so its palette (defined in
+    // saviour.css) applies to the portal and this navbar. Cleared on the way out.
+    useEffect(() => {
+        const root = document.documentElement;
+        if (inSaviour) root.setAttribute('data-portal', 'saviour');
+        else root.removeAttribute('data-portal');
+        return () => root.removeAttribute('data-portal');
+    }, [inSaviour]);
+
     const handleLogout = async () => {
         await logout();
         navigate('/login');

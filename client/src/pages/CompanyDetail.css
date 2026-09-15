@@ -617,7 +617,7 @@
 .modal-body select:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.1);
+    box-shadow: 0 0 0 3px rgba(75, 90, 166, 0.1);
 }
 
 .modal-body textarea {

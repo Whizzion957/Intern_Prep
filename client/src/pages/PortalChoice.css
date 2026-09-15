@@ -15,8 +15,8 @@
     inset: 0;
     pointer-events: none;
     background-image:
-        radial-gradient(circle at 88% 8%, rgba(255, 87, 34, 0.10), transparent 42%),
-        radial-gradient(circle at 4% 92%, rgba(26, 35, 126, 0.10), transparent 45%),
+        radial-gradient(circle at 88% 8%, rgba(207, 120, 96, 0.10), transparent 42%),
+        radial-gradient(circle at 4% 92%, rgba(75, 90, 166, 0.10), transparent 45%),
         radial-gradient(currentColor 1px, transparent 1px);
     background-size: auto, auto, 22px 22px;
     color: rgba(15, 23, 42, 0.06);
@@ -25,8 +25,8 @@
 [data-theme="dark"] .portal-backdrop {
     color: rgba(255, 255, 255, 0.05);
     background-image:
-        radial-gradient(circle at 88% 8%, rgba(255, 112, 67, 0.12), transparent 42%),
-        radial-gradient(circle at 4% 92%, rgba(124, 138, 255, 0.12), transparent 45%),
+        radial-gradient(circle at 88% 8%, rgba(225, 139, 115, 0.12), transparent 42%),
+        radial-gradient(circle at 4% 92%, rgba(139, 149, 232, 0.12), transparent 45%),
         radial-gradient(currentColor 1px, transparent 1px);
 }
 
@@ -85,7 +85,10 @@
 }
 
 .portal-card-saviour::before {
-    background: var(--secondary);
+    background: #2b8a80;
+}
+[data-theme="dark"] .portal-card-saviour::before {
+    background: #63c3b5;
 }
 
 .portal-card:hover {
@@ -95,7 +98,10 @@
 }
 
 .portal-card-saviour:hover {
-    border-color: var(--secondary);
+    border-color: #2b8a80;
+}
+[data-theme="dark"] .portal-card-saviour:hover {
+    border-color: #63c3b5;
 }
 
 .portal-icon {
@@ -105,21 +111,22 @@
     height: 2.75rem;
     border-radius: var(--radius-md);
     margin-bottom: 1.125rem;
-    background: rgba(26, 35, 126, 0.09);
+    background: rgba(75, 90, 166, 0.09);
     color: var(--primary);
 }
 
 .portal-card-saviour .portal-icon {
-    background: rgba(255, 87, 34, 0.12);
-    color: var(--secondary);
+    background: rgba(43, 138, 128, 0.12);
+    color: #2b8a80;
 }
 
 [data-theme="dark"] .portal-icon {
-    background: rgba(124, 138, 255, 0.14);
+    background: rgba(139, 149, 232, 0.14);
 }
 
 [data-theme="dark"] .portal-card-saviour .portal-icon {
-    background: rgba(255, 112, 67, 0.16);
+    background: rgba(99, 195, 181, 0.16);
+    color: #63c3b5;
 }
 
 .portal-card h2 {
@@ -147,7 +154,10 @@
 }
 
 .portal-card-saviour .portal-go {
-    color: var(--secondary);
+    color: #2b8a80;
+}
+[data-theme="dark"] .portal-card-saviour .portal-go {
+    color: #63c3b5;
 }
 
 .portal-card:hover .portal-go svg {

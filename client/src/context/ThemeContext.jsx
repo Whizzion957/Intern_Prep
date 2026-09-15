@@ -23,7 +23,7 @@ export const ThemeProvider = ({ children }) => {
         // Update meta theme-color
         const metaThemeColor = document.querySelector('meta[name="theme-color"]');
         if (metaThemeColor) {
-            metaThemeColor.setAttribute('content', theme === 'dark' ? '#0f172a' : '#1a237e');
+            metaThemeColor.setAttribute('content', theme === 'dark' ? '#14151c' : '#4b5aa6');
         }
     }, [theme]);
 
