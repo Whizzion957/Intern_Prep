@@ -1186,3 +1186,35 @@ select[aria-invalid='true'] {
   flex-direction: column;
   gap: 0.9rem;
 }
+
+/* Approvals: connect a Saviour folder for one-click moves */
+.sv-folders {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.sv-folder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 0.875rem;
+}
+
+.sv-folder-ok {
+  color: var(--success);
+}
+
+/* Add material: pick-from-Drive row */
+.sv-pick-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}

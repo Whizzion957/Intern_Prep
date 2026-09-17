@@ -59,6 +59,9 @@ export const approvalAPI = {
   decide: (id, decision, note) => saviour.patch(`/materials/${id}/decide`, { decision, note }),
   // The custodian's re-upload path: point the record at the saviour Drive copy
   relink: (id, url, approve = true) => saviour.patch(`/materials/${id}/relink`, { url, approve }),
+  // One-click: the server copies the public file into the custodian's folder
+  // using their short-lived drive.file token, then approves.
+  adopt: (id, accessToken) => saviour.post(`/materials/${id}/adopt`, { accessToken }),
 };
 
 export const custodianAPI = {
@@ -66,6 +69,9 @@ export const custodianAPI = {
   mine: () => saviour.get('/custodians/mine'),
   assign: (data) => saviour.post('/custodians', data),
   remove: (id) => saviour.delete(`/custodians/${id}`),
+  // The custodian records the folder they just granted via the Picker
+  connectFolder: (id, folderId, folderUrl) =>
+    saviour.patch(`/custodians/${id}/folder`, { folderId, folderUrl }),
 };
 
 export const professorAPI = {

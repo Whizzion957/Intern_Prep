@@ -19,6 +19,7 @@ import { useCallback, useEffect, useState } from 'react';
 import DriveViewer from '../components/DriveViewer';
 import CourseRequestQueue from '../components/CourseRequestQueue';
 import { approvalAPI, custodianAPI, courseAPI, kindLabel, examLabel } from '../api';
+import { getDriveToken, pickFolder, driveConfigured } from '../lib/googleDrive';
 import '../saviour.css';
 
 const ApprovalPanel = () => {
@@ -26,6 +27,7 @@ const ApprovalPanel = () => {
   const [courseRequests, setCourseRequests] = useState([]);
   const [scope, setScope] = useState({ custodianships: [], isSuperadmin: false, isAdmin: false });
   const [notice, setNotice] = useState('');
+  const [flash, setFlash] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(null);
   const [relinking, setRelinking] = useState(null);
@@ -91,13 +93,58 @@ const ApprovalPanel = () => {
     }
   };
 
-  // Where this custodian should be re-uploading, if a folder was recorded
-  const folderFor = (material) =>
+  // The acting user's own custodianship for this material's cohort, if any.
+  // Only then does the one-click move make sense (it uploads to their folder).
+  const myCohort = (material) =>
     scope.custodianships.find(
       (entry) =>
         entry.department === material.department &&
         entry.graduatingBatch === material.graduatingBatch
-    )?.driveFolderUrl;
+    );
+
+  // One click: hand a fresh drive.file token to the server, which copies the
+  // public file into the custodian's folder and approves.
+  const adopt = async (material) => {
+    setError('');
+    setBusy(material._id);
+    try {
+      const token = await getDriveToken();
+      await approvalAPI.adopt(material._id, token);
+      drop(material._id);
+      setFlash('Moved into your Saviour Drive and approved.');
+    } catch (err) {
+      const data = err.response?.data;
+      if (data?.code === 'FILE_TOO_LARGE') {
+        setError(`${data.message} Use “Move manually” below.`);
+        setRelinking(material._id);
+      } else if (data?.code === 'NO_FOLDER') {
+        setError(data.message);
+      } else {
+        setError(data?.message || err.message || 'Could not move the file');
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // Connect the custodian's Saviour folder via the Picker (that grant is what
+  // lets the server upload into it), then record its id.
+  const connect = async (entry) => {
+    setError('');
+    setBusy(`connect-${entry._id}`);
+    try {
+      const token = await getDriveToken();
+      const folder = await pickFolder(token);
+      if (!folder) return;
+      await custodianAPI.connectFolder(entry._id, folder.id, folder.url);
+      setFlash(`Connected “${folder.name}”. Moving files is now one click.`);
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Could not connect the folder');
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <div className="sv-page">
@@ -115,6 +162,35 @@ const ApprovalPanel = () => {
       </header>
 
       {error && <div className="sv-error">{error}</div>}
+      {flash && <div className="sv-success">{flash}</div>}
+
+      {/* Connect a Saviour folder once, and moving files becomes one click.
+          Lives here because this is the page custodians actually visit. */}
+      {driveConfigured() && scope.custodianships.length > 0 && (
+        <div className="sv-folders">
+          {scope.custodianships.map((entry) => (
+            <div className="sv-folder-row" key={entry._id}>
+              <span>
+                <strong>{entry.department.toUpperCase()} ’{String(entry.graduatingBatch).slice(2)}</strong>
+                {entry.driveFolderId ? (
+                  <span className="sv-folder-ok"> · folder connected</span>
+                ) : (
+                  <span className="sv-muted"> · no folder connected</span>
+                )}
+              </span>
+              <button
+                className="sv-btn sv-btn-ghost sv-btn-sm"
+                disabled={busy === `connect-${entry._id}`}
+                onClick={() => connect(entry)}
+              >
+                {busy === `connect-${entry._id}`
+                  ? 'Connecting…'
+                  : entry.driveFolderId ? 'Change folder' : 'Connect folder'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Course requests first: a pending one often blocks somebody from
           submitting material at all. */}
@@ -175,6 +251,27 @@ const ApprovalPanel = () => {
               <button className="sv-btn" disabled={busy === material._id} onClick={() => decide(material, 'approved')}>
                 Approve as-is
               </button>
+
+              {/* One-click move, only when you're the cohort's custodian */}
+              {(() => {
+                const mine = myCohort(material);
+                if (!mine || !driveConfigured()) return null;
+                return mine.driveFolderId ? (
+                  <button className="sv-btn" disabled={busy === material._id} onClick={() => adopt(material)}>
+                    {busy === material._id ? 'Moving…' : 'Move to my Saviour Drive'}
+                  </button>
+                ) : (
+                  <button
+                    className="sv-btn sv-btn-ghost"
+                    disabled={busy === `connect-${mine._id}`}
+                    onClick={() => connect(mine)}
+                    title="Pick your Saviour folder once to enable one-click moves"
+                  >
+                    {busy === `connect-${mine._id}` ? 'Connecting…' : 'Connect Saviour folder'}
+                  </button>
+                );
+              })()}
+
               <button
                 className="sv-btn sv-btn-ghost"
                 onClick={() => {
@@ -182,7 +279,7 @@ const ApprovalPanel = () => {
                   setRelinkUrl('');
                 }}
               >
-                Move to saviour Drive
+                Move manually
               </button>
               <button className="sv-btn sv-btn-ghost" disabled={busy === material._id} onClick={() => decide(material, 'rejected')}>
                 Reject
@@ -193,9 +290,9 @@ const ApprovalPanel = () => {
               <div className="sv-relink">
                 <p className="sv-muted">
                   Download it, upload it into the batch folder
-                  {folderFor(material) && (
+                  {myCohort(material)?.driveFolderUrl && (
                     <>
-                      {' '}(<a href={folderFor(material)} target="_blank" rel="noopener noreferrer">open folder</a>)
+                      {' '}(<a href={myCohort(material).driveFolderUrl} target="_blank" rel="noopener noreferrer">open folder</a>)
                     </>
                   )}
                   , then paste the new file’s link. Approving happens in the same step.

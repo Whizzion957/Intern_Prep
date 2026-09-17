@@ -16,6 +16,7 @@ import CourseTypeahead from '../components/CourseTypeahead';
 import ProfessorPicker from '../components/ProfessorPicker';
 import { courseAPI, materialAPI, KINDS, EXAMS, EXAM_KINDS, PROFESSOR_REQUIRED_KINDS } from '../api';
 import { DEPARTMENTS, DEFAULT_DEPARTMENT, BATCH_MIN, BATCH_MAX, isValidBatch } from '../../constants/departments';
+import { getDriveToken, pickFile, setAnyoneWithLink, driveConfigured } from '../lib/googleDrive';
 import { useAuth } from '../../context';
 import '../saviour.css';
 
@@ -40,9 +41,32 @@ const AddMaterial = () => {
   });
   const [url, setUrl] = useState('');
   const [publicConfirmed, setPublicConfirmed] = useState(false);
+  const [pickedName, setPickedName] = useState('');
+  const [picking, setPicking] = useState(false);
   const [routedTo, setRoutedTo] = useState(null);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Pick a file straight from the submitter's Drive: no copy-paste, and the app
+  // sets its sharing for them, so the "is it public" step can't be forgotten.
+  const pickFromDrive = async () => {
+    setError('');
+    setPicking(true);
+    try {
+      const token = await getDriveToken();
+      const file = await pickFile(token);
+      if (!file) return;
+      await setAnyoneWithLink(token, file.id);
+      setUrl(`https://drive.google.com/file/d/${file.id}/view`);
+      setPublicConfirmed(true);
+      setPickedName(file.name);
+      setForm((prev) => (prev.title ? prev : { ...prev, title: file.name.replace(/\.[^.]+$/, '') }));
+    } catch (err) {
+      setError(err.message || 'Could not pick from Drive');
+    } finally {
+      setPicking(false);
+    }
+  };
 
   // Default the cohort to the submitter's own branch and batch - that is what
   // people upload nine times out of ten - but leave both editable, because
@@ -324,17 +348,33 @@ const AddMaterial = () => {
           )}
         </div>
 
-        {/* The link. There is no upload option anywhere - by design. */}
+        {/* We store the link, never the file. Pick straight from Drive, or paste. */}
         <div className="sv-field">
-          <label>Google Drive link</label>
+          <label>Google Drive file</label>
+
+          {driveConfigured() && (
+            <div className="sv-pick-row">
+              <button type="button" className="sv-btn sv-btn-ghost" disabled={picking} onClick={pickFromDrive}>
+                {picking ? 'Opening…' : 'Choose from Google Drive'}
+              </button>
+              {pickedName && <span className="sv-muted">Picked: {pickedName} · sharing set</span>}
+            </div>
+          )}
+
           <input
             className="sv-input"
             value={url}
-            onChange={(event) => setUrl(event.target.value)}
-            placeholder="https://drive.google.com/file/d/…"
+            onChange={(event) => {
+              setUrl(event.target.value);
+              setPickedName('');
+            }}
+            placeholder="…or paste a link: https://drive.google.com/file/d/…"
+            style={driveConfigured() ? { marginTop: '0.5rem' } : undefined}
           />
           <p className="sv-muted" style={{ marginTop: '0.3rem' }}>
-            Link the file itself, not the folder. We store the link, never the file.
+            {driveConfigured()
+              ? 'Choosing from Drive fills this in and sets sharing for you. Link the file, not the folder.'
+              : 'Link the file itself, not the folder. We store the link, never the file.'}
           </p>
         </div>
 

@@ -125,4 +125,36 @@ const removeCustodian = async (req, res) => {
     }
 };
 
-module.exports = { listCustodians, myCustodianships, assignCustodian, removeCustodian };
+/**
+ * PATCH /api/saviour/custodians/:id/folder  { folderId, folderUrl }
+ *
+ * The custodian connects their own Saviour folder, having just granted the app
+ * access to it through the Picker. Storing the id is what lets "move to my
+ * Drive" upload straight in. Only the custodian who owns the record (or a
+ * superadmin) may set it - the Picker grant is theirs, so the folder must be.
+ */
+const connectFolder = async (req, res) => {
+    try {
+        const { folderId, folderUrl } = req.body;
+        if (!folderId) return res.status(400).json({ message: 'folderId is required' });
+
+        const custodian = await Custodian.findById(req.params.id);
+        if (!custodian) return res.status(404).json({ message: 'No such custodian' });
+
+        const isOwner = custodian.email === req.user.email?.toLowerCase();
+        if (!isOwner && req.user.role !== 'superadmin') {
+            return res.status(403).json({ message: 'Only this custodian can connect their folder' });
+        }
+
+        custodian.driveFolderId = String(folderId).trim();
+        if (folderUrl) custodian.driveFolderUrl = String(folderUrl).trim();
+        await custodian.save();
+
+        res.json({ custodian });
+    } catch (error) {
+        console.error('[saviour] connectFolder:', error);
+        res.status(500).json({ message: 'Could not connect the folder' });
+    }
+};
+
+module.exports = { listCustodians, myCustodianships, assignCustodian, removeCustodian, connectFolder };

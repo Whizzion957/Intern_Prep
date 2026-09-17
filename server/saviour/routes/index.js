@@ -32,6 +32,7 @@ const {
     listApprovals,
     decideMaterial,
     relinkMaterial,
+    adoptMaterial,
     updateMaterial,
     withdrawMaterial,
     getMaterial,
@@ -46,6 +47,7 @@ const {
     myCustodianships,
     assignCustodian,
     removeCustodian,
+    connectFolder,
 } = require('../controllers/custodianController');
 
 const {
@@ -91,9 +93,13 @@ router.post('/materials/:id/report', reportMaterial);
 router.get('/approvals', listApprovals);
 router.patch('/materials/:id/decide', decideMaterial);
 router.patch('/materials/:id/relink', relinkMaterial);
+// One-click move: server copies the public file into the custodian's folder
+router.post('/materials/:id/adopt', adoptMaterial);
 
 // --- Custodians ----------------------------------------------------------
 router.get('/custodians/mine', myCustodianships);
+// A custodian connects their own folder (Picker grant); ownership checked inside
+router.patch('/custodians/:id/folder', connectFolder);
 router.get('/custodians', superadmin, listCustodians);
 router.post('/custodians', superadmin, assignCustodian);
 router.delete('/custodians/:id', superadmin, removeCustodian);

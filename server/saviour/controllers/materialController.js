@@ -14,9 +14,11 @@
 const Material = require('../models/Material');
 const MaterialRequest = require('../models/MaterialRequest');
 const Professor = require('../models/Professor');
+const Custodian = require('../models/Custodian');
 const { resolveCourse } = require('../services/courseLookup');
 const { codeForYear } = require('../services/courseCodes');
 const { parseDriveLink, driveUrls, buildSource } = require('../services/drive');
+const { downloadPublicFile, uploadToFolder, setAnyoneWithLink, getPublicFileMeta } = require('../services/driveApi');
 const { serialize } = require('../services/courseView');
 const {
     custodianFor,
@@ -128,6 +130,23 @@ const createMaterial = async (req, res) => {
                 message: 'Set the Drive file to "Anyone with the link" and confirm it, '
                     + 'otherwise nobody but you can open it.',
             });
+        }
+
+        // Catch a private link at submit time rather than as a custodian
+        // rejection later. Only definitive "not public" blocks; a transient
+        // Drive/network error is logged and let through. No-op without an API key.
+        if (process.env.GOOGLE_API_KEY) {
+            try {
+                const meta = await getPublicFileMeta(link.fileId);
+                if (!meta) {
+                    return res.status(400).json({
+                        message: 'That file is not shared publicly yet. Set it to '
+                            + '"Anyone with the link", or use "Choose from Google Drive" which sets it for you.',
+                    });
+                }
+            } catch (checkError) {
+                console.warn('[saviour] verify-public skipped:', checkError.message);
+            }
         }
 
         // Quizzes and tutorials are kinds of their own now, so a new paper can
@@ -332,6 +351,88 @@ const relinkMaterial = async (req, res) => {
         }
         console.error('[saviour] relinkMaterial:', error);
         res.status(500).json({ message: 'Could not relink material' });
+    }
+};
+
+/**
+ * POST /api/saviour/materials/:id/adopt  { accessToken }
+ *
+ * The one-click version of "move to Drive": instead of the custodian
+ * downloading and re-uploading by hand, the server reads the student's public
+ * file and uploads a copy into the custodian's own Saviour folder, using the
+ * custodian's short-lived drive.file token. The record is re-pointed at the
+ * durable copy and approved in the same step - the same end state as relink.
+ *
+ * Needs the custodian to have connected their folder through the Picker first
+ * (that grant is what lets the app write into it). Oversized files and any
+ * failure fall back to the manual relink, which is left untouched.
+ */
+const adoptMaterial = async (req, res) => {
+    try {
+        const { accessToken } = req.body;
+        if (!accessToken) return res.status(400).json({ message: 'Missing Google access token' });
+
+        const material = await Material.findById(req.params.id);
+        if (!material) return res.status(404).json({ message: 'No such material' });
+
+        if (!(await canDecide(req.user, material))) {
+            return res.status(403).json({
+                message: 'Only the custodian for that branch and batch, or a superadmin, can move this',
+            });
+        }
+        if (material.source.origin === 'saviour_drive') {
+            return res.status(400).json({ message: 'This already lives in a saviour Drive' });
+        }
+
+        // Upload into the acting custodian's OWN connected folder - the Picker
+        // grant that makes the upload possible is theirs, so the folder must be.
+        const custodian = await Custodian.findOne({
+            department: material.department,
+            graduatingBatch: material.graduatingBatch,
+            email: req.user.email?.toLowerCase(),
+            active: true,
+        });
+        if (!custodian?.driveFolderId) {
+            return res.status(400).json({
+                code: 'NO_FOLDER',
+                message: 'Connect your Saviour Drive folder first, then move it. '
+                    + 'You can still move it manually with a link.',
+            });
+        }
+
+        const file = await downloadPublicFile(material.source.fileId);
+        const newFileId = await uploadToFolder(accessToken, custodian.driveFolderId, file);
+        // A freshly uploaded file is private; the viewer needs anyone-with-link.
+        await setAnyoneWithLink(accessToken, newFileId);
+
+        const previous = material.source.url;
+        material.source = {
+            ...buildSource({ fileId: newFileId, docType: 'file' }, {
+                origin: 'saviour_drive',
+                publicConfirmed: true,
+                replacedFrom: previous,
+            }),
+            replacedBy: req.user._id,
+            replacedAt: new Date(),
+        };
+        material.status = 'approved';
+        material.decidedBy = req.user._id;
+        material.decidedAt = new Date();
+        await material.save();
+
+        res.json({ material, message: 'Copied into your Saviour Drive and approved' });
+    } catch (error) {
+        if (error.code === 'FILE_TOO_LARGE') {
+            return res.status(413).json({
+                code: 'FILE_TOO_LARGE',
+                message: 'That file is too large to move automatically. Re-upload it and paste the link.',
+            });
+        }
+        if (error.code === 'NOT_PUBLIC') {
+            return res.status(400).json({ message: 'The student\'s file is not shared publicly, so it can\'t be copied.' });
+        }
+        console.error('[saviour] adoptMaterial:', error.response?.status, error.response?.data || error.message);
+        res.status(502).json({ message: 'Could not copy the file into Drive. You can still move it manually.' });
     }
 };
 
@@ -558,6 +659,7 @@ module.exports = {
     listApprovals,
     decideMaterial,
     relinkMaterial,
+    adoptMaterial,
     updateMaterial,
     withdrawMaterial,
     getMaterial,

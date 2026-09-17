@@ -45,6 +45,14 @@ const custodianSchema = new mongoose.Schema(
             trim: true,
             default: null,
         },
+        // The folder's Drive id, set when the custodian connects it through the
+        // Picker. That Picker action is what grants the app drive.file access to
+        // the folder, which is what makes the one-click "move to my Drive" work.
+        driveFolderId: {
+            type: String,
+            trim: true,
+            default: null,
+        },
         active: {
             type: Boolean,
             default: true,

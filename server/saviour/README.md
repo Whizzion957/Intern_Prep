@@ -26,17 +26,47 @@ Every submission carries a cohort (`department` + `graduatingBatch`) and is
 routed to that pair's custodian **and** to the superadmins. Nobody else sees it.
 If no custodian is appointed for a pair, it falls to the superadmins alone.
 
-The custodian has three moves in the approval panel:
+The custodian has these moves in the approval panel:
 
 | Action | What it does |
 | --- | --- |
 | **Approve as-is** | The student's link stands. Fast, but it dies when they lose the file. |
-| **Move to saviour Drive** | Download, re-upload into the batch folder, paste the new link. The record is re-pointed and approved in one step; the old link is kept in `source.replacedFrom`, and `source.origin` flips to `saviour_drive` so readers can see which copy is the durable one. |
+| **Move to my Saviour Drive** (one click) | The server reads the student's public file and uploads a copy into the custodian's own folder, then approves — no manual download/re-upload. See below. |
+| **Move manually** | The old path: download, re-upload into the batch folder, paste the new link. Kept as the fallback for oversized files or any failure. |
 | **Reject** | With a note the submitter sees. |
+
+Both move paths re-point the record: the old link is kept in
+`source.replacedFrom` and `source.origin` flips to `saviour_drive` so readers can
+see which copy is the durable one.
 
 The panel embeds a Drive preview of every pending item, which doubles as the
 sharing check: Drive only renders it for files shared "anyone with the link", so
 a blank preview *is* the evidence that the file is still private.
+
+### One-click move (how it works)
+
+There is still no central Saviour Drive — the durable copy lands in the
+**custodian's own** batch folder. Two credentials make that possible without a
+service account (`services/driveApi.js`):
+
+- **Reading** the student's file uses the app **API key** (`GOOGLE_API_KEY`) on
+  the v3 `files.get?alt=media` path — the file is public, and this avoids the
+  large-file "confirm download" interstitial.
+- **Writing** into the custodian's folder uses the **custodian's** short-lived
+  OAuth **`drive.file`** access token, obtained in the browser only when they act
+  (`client/src/saviour/lib/googleDrive.js`) and never stored.
+
+`drive.file` is per-file: the custodian first **connects their folder through
+the Picker** (Approvals → "Connect folder"), which is what grants the app write
+access to it; the folder id is saved on the `Custodian` (`driveFolderId`).
+Thereafter the move is one click. `drive.file` can't read an arbitrary file the
+app never opened, so the move is download-public-then-upload, not a server-side
+`files.copy`. Files above ~30 MB fall back to the manual path.
+
+Setup: enable the **Drive API** and **Picker API** in Google Cloud, create a
+browser **API key**, add the non-sensitive `drive.file` scope to the consent
+screen, and set `GOOGLE_API_KEY` / `VITE_GOOGLE_API_KEY`. All of it is optional —
+the one-click UI hides itself when unset and the manual flow still works.
 
 ## Course codes
 
